@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="NSGSimulado.API/NSGSimulado.API.csproj" Id="e48042d6-8eb5-4c6c-8d68-3cb16b5ad149" />
+  <Project Path="PSGN.Application/PSGN.Application.csproj" />
+  <Project Path="PSGN.CrossCutting/PSGN.CrossCutting.csproj" />
+  <Project Path="PSGN.Domain/PSGN.Domain.csproj" />
+  <Project Path="PSGN.Infra/PSGN.Infra.csproj" />
+  <Project Path="PSGN.Presentation/PSGN.Presentation.csproj" />
+</Solution>
