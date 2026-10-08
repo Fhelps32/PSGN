@@ -22,10 +22,10 @@ namespace PSGN.Application.Servicos.Cursos
 
         public async Task<IEnumerable<Curso>> SincronizarCursosAsync()
         {
-            var cursosExternos = await _externoCurso.ObterCursosPeloIdPaiAsync();
+            var cursosExternos = await _externoCurso.ObterCursosPeloIdNumberAsync("EAD", 3);
             var cursosInternos = _dbContext.Cursos.ToList();
             var cursosParaAdicionar = cursosExternos
-                .Where(cursoExterno => !cursosInternos.Any(cursoInterno => cursoInterno.IdCurso == cursoExterno.Id))
+                .Where(cursoExterno => !cursosInternos.Any(cursoInterno => cursoInterno.IdMoodle == cursoExterno.Id))
                 .Select(cursoExterno => new Curso(cursoExterno.Nome, string.Empty, null) { IdCurso = cursoExterno.Id })
                 .ToList();
             if (cursosParaAdicionar.Any())

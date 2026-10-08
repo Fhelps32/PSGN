@@ -9,11 +9,12 @@ namespace NSGSimulado.API.Models
         [Key]
         public int IdCurso { get; set; }
 
-        [ForeignKey("Coordenador")]
+        [ForeignKey("Usuario")]
         public int IdCoordenador { get; set; }
-        public int IdMoodle { get; set; } //id que vem do moodle, para poder sincronizar os cursos do moodle com o sistema
+        public string IdCursoNSG { get; set; } = string.Empty;
         public string Nome { get; set; } = string.Empty;
-        public string Sigla { get; set; } = string.Empty;
         public int PerLetivo { get; set; }
+
+        public Usuario Usuario { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿using PSGN.;
+﻿using PSGN;
 using PSGN.Application.Servicos.Cursos;
 using PSGN.Domain;
 using System;
@@ -11,6 +11,6 @@ namespace PSGN.Application.Interfaces.ExternoServices
 {
     public interface IExternoCurso
     {
-        public Task<IEnumerable<CursoSaidaJsonDto>> ObterCursosPeloIdPaiAsync();
+        public Task<IEnumerable<CursoSaidaJsonDto>> ObterCursosPeloIdNumberAsync(string idNumber, int depth);
     }
 }

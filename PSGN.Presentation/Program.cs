@@ -1,10 +1,17 @@
 using PSGN.CrossCutting;
+using PSGN.Infra.Integracoes.Moodle;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddInfraData(builder.Configuration);
+builder.Services
+    .AddOptions<ConfigMoodleWebApi>()
+    .Bind(builder.Configuration.GetSection("ConfigMoodleWebApi"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart(); // a aplicação não sobe se faltar BaseUrl ou Token
+
 
 var app = builder.Build();
 

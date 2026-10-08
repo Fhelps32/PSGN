@@ -15,14 +15,17 @@ namespace PSGN.Application.Servicos.Cursos
         [JsonPropertyName("name")]
         public string Nome { get; set; } = string.Empty;
 
-        [JsonPropertyName("parent")]
-        public int IdParente { get; set; }
+        [JsonPropertyName("depth")]
+        public int Depth { get; set; }
 
-        public CursoSaidaJsonDto(int id, string nome, int idParente)
+        [JsonPropertyName("idnumber")]
+        public string IdNumber { get; set; } = string.Empty;
+
+        public CursoSaidaJsonDto(int id, string nome, int depth)
         {
             Id = id;
             Nome = nome;
-            IdParente = idParente;
+            Depth = depth;
         }
     }
 }
