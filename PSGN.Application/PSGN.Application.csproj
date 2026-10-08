@@ -7,15 +7,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Integracoes\**" />
+    <EmbeddedResource Remove="Integracoes\**" />
+    <None Remove="Integracoes\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.31" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\PSGN.Domain\PSGN.Domain.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Integracoes\" />
   </ItemGroup>
 
 </Project>
