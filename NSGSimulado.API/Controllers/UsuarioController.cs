@@ -39,16 +39,5 @@ namespace NSGSimulado.API.Controllers
             _context.SaveChanges();
             return StatusCode(200);
         }
-
-        [HttpGet("infocurso/{id}")]
-        public IActionResult InfoCurso(string id)
-        {
-            var curso = _context.Cursos.Include(c => c.Usuario).FirstOrDefault(c => c.IdCursoNSG == id);
-            if (curso == null)
-            {
-                return NotFound();
-            }
-            return Ok(curso);
-        }
     }
 }

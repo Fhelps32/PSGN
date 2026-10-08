@@ -28,16 +28,38 @@ namespace NSGSimulado.API.Controllers
                 new Curso { IdCoordenador = 5, IdCursoNSG = "005", Nome = "Pós-Graduação em Finanças - EAD", PerLetivo = 2024 },
                 new Curso { IdCoordenador = 6, IdCursoNSG = "006", Nome = "Pós-Graduação em Pedagogia Empresarial - EAD", PerLetivo = 2024 }
             };
-            
+
             foreach (var curso in cursos)
             {
-                if(curso.IdCursoNSG != _context.Cursos.FirstOrDefault(c => c.IdCursoNSG == curso.IdCursoNSG)?.IdCursoNSG)
+                if (curso.IdCursoNSG != _context.Cursos.FirstOrDefault(c => c.IdCursoNSG == curso.IdCursoNSG)?.IdCursoNSG)
                 {
                     _context.Cursos.Add(curso);
                 }
             }
             _context.SaveChanges();
             return StatusCode(200);
+        }
+
+        [HttpGet("infocursoid/{id}")]
+        public IActionResult InfoCurso(string id)
+        {
+            var curso = _context.Cursos.Include(c => c.Usuario).FirstOrDefault(c => c.IdCursoNSG == id);
+            if (curso == null)
+            {
+                return NotFound();
+            }
+            return Ok(curso);
+        }
+
+        [HttpGet("infocursonome/{nome}")]
+        public IActionResult InfoCursoPorNome(string nome)
+        {
+            var curso = _context.Cursos.Include(c => c.Usuario).FirstOrDefault(c => c.Nome == nome);
+            if (curso == null)
+            {
+                return NotFound();
+            }
+            return Ok(curso);
         }
     }
 }
