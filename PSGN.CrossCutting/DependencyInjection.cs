@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PSGN.Application.Interfaces.ExternoServices;
 using PSGN.Infra.Data;
 using PSGN.Infra.Integracoes.Moodle.Cursos;
+using PSGN.Infra.Integracoes.NSG;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +16,15 @@ namespace PSGN.CrossCutting
     public static class DependencyInjection
     {
         #region Application
+        public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddHttpClient<IExternoCurso, CursoMoodleSyncService>(client =>
+            {
+                client.BaseAddress = new Uri(configuration["Moodle:BaseUrl"] ?? throw new ArgumentNullException("Não foi possível obter a URL base do Moodle."));
+            });
 
+            return services;
+        }
         #endregion
 
         #region Infra
@@ -28,8 +37,6 @@ namespace PSGN.CrossCutting
                 options.UseSqlServer(connectionString);
             });
             return services;
-
-            services.AddScoped<IExternoCurso, CursoMoodleSyncService>();
         }
         #endregion
     }

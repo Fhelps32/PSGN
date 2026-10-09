@@ -54,12 +54,14 @@ namespace NSGSimulado.API.Controllers
         [HttpGet("infocursonome/{nome}")]
         public IActionResult InfoCursoPorNome(string nome)
         {
-            var curso = _context.Cursos.Include(c => c.Usuario).FirstOrDefault(c => c.Nome == nome);
+            var curso = _context.Cursos.Include(c => c.Usuario).FirstOrDefault(c => c.Nome.Contains(nome));
             if (curso == null)
             {
                 return NotFound();
             }
             return Ok(curso);
         }
+
+        public void CriarAlunos()
     }
 }

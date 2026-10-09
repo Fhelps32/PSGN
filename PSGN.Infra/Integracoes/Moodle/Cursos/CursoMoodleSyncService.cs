@@ -16,7 +16,7 @@ namespace PSGN.Infra.Integracoes.Moodle.Cursos
             _configMoodleWebApi = options.Value;
         }
 
-        public async Task<IEnumerable<CursoSaidaJsonDto>> ObterCursosPeloIdNumberAsync(string idNumber, int depth)
+        public async Task<IEnumerable<CursoSaidaJsonMoodleCategoriasDto>> ObterCursosPeloIdNumberAsync(string idNumber, int depth)
         {
             var parametros = new Dictionary<string, string>
             {
@@ -31,8 +31,8 @@ namespace PSGN.Infra.Integracoes.Moodle.Cursos
             var response = _httpClient.PostAsync(_configMoodleWebApi.BaseUrl, new FormUrlEncodedContent(parametros)).Result;
             var json = response.Content.ReadAsStringAsync().Result;
 
-            var listaCursos = JsonSerializer.Deserialize<List<CursoSaidaJsonDto>>(json).Where(c => c.Depth == depth) 
-                ?? Enumerable.Empty<CursoSaidaJsonDto>();
+            var listaCursos = JsonSerializer.Deserialize<List<CursoSaidaJsonMoodleCategoriasDto>>(json).Where(c => c.Depth == depth) 
+                ?? Enumerable.Empty<CursoSaidaJsonMoodleCategoriasDto>();
             
             return listaCursos;
         }

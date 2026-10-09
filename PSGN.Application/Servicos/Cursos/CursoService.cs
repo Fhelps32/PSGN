@@ -13,27 +13,47 @@ namespace PSGN.Application.Servicos.Cursos
     {
         private readonly IExternoCurso _externoCurso;
         private readonly IPSGNDbContext _dbContext;
+        private readonly IExternoCursoNSG _externoCursoNSG; 
 
-        public CursoService(IExternoCurso externoCurso, IPSGNDbContext dbContext)
+        public CursoService(IExternoCurso externoCurso, IPSGNDbContext dbContext, IExternoCursoNSG externoCursoNSG)
         {
             _externoCurso = externoCurso;
             _dbContext = dbContext;
+            _externoCursoNSG = externoCursoNSG;
         }
 
-        public async Task<IEnumerable<Curso>> SincronizarCursosAsync()
+        public async Task<IEnumerable<Curso>> SincronizarCursosAsync(string idNumber, int profundidade)
         {
-            var cursosExternos = await _externoCurso.ObterCursosPeloIdNumberAsync("EAD", 3);
+            var cursosExternos = await _externoCurso.ObterCursosPeloIdNumberAsync(idNumber, profundidade);
             var cursosInternos = _dbContext.Cursos.ToList();
             var cursosParaAdicionar = cursosExternos
-                .Where(cursoExterno => !cursosInternos.Any(cursoInterno => cursoInterno.IdMoodle == cursoExterno.Id))
-                .Select(cursoExterno => new Curso(cursoExterno.Nome, string.Empty, null) { IdCurso = cursoExterno.Id })
-                .ToList();
-            if (cursosParaAdicionar.Any())
+                .Where(cursoExterno => !cursosInternos.Any(cursoInterno => cursoInterno.Nome == cursoExterno.Nome));
+
+            var cursosAdicionados = new List<Curso>();
+
+            foreach (var curso in cursosParaAdicionar)
             {
-                _dbContext.Cursos.AddRange(cursosParaAdicionar);
-                await _dbContext.SaveChangesAsync();
+                var coordenadorDto = await _externoCursoNSG.ObterCoordenadorDoCursoAsync(curso.Nome);
+                if (_dbContext.Usuarios.Any(u => u.Matricula == coordenadorDto.Matricula))
+                {
+                    var usuarioCoordenador = _dbContext.Usuarios.FirstOrDefault(u => u.Matricula == coordenadorDto.Matricula);
+                    var novoCurso = new Curso(curso.Nome, curso.Nome, usuarioCoordenador!);
+                    _dbContext.Cursos.Add(novoCurso);
+
+                    cursosAdicionados.Add(novoCurso);
+                }
+                else
+                {
+                    var novoUsuario = new Usuario(coordenadorDto.Matricula, coordenadorDto.Nome);
+                    _dbContext.Usuarios.Add(novoUsuario);
+                    await _dbContext.SaveChangesAsync();
+                    var novoCurso = new Curso(curso.Nome, curso.Nome, novoUsuario!);
+                    _dbContext.Cursos.Add(novoCurso);
+
+                    cursosAdicionados.Add(novoCurso);
+                }
             }
-            return cursosParaAdicionar;
+            return cursosAdicionados;
         }
     }
 }
