@@ -16,6 +16,33 @@ namespace PSGN.Infra.Integracoes.Moodle.Cursos
             _configMoodleWebApi = options.Value;
         }
 
+        public async Task<CursoSaidaJsonMoodleCategoriasDto> ObterCursoPeloIdMoodle(int idCurso)
+        {
+            var parametros = new Dictionary<string, string>
+            {
+                ["wstoken"] = _configMoodleWebApi.Token,
+                ["wsfunction"] = "core_course_get_categories",
+                ["moodlewsrestformat"] = "json",
+                ["criteria[0][key]"] = "id",
+                ["criteria[0][value]"] = idCurso.ToString(),
+                ["addsubcategories"] = "0"
+            };
+
+            var response = await _httpClient.PostAsync(_configMoodleWebApi.BaseUrl, new FormUrlEncodedContent(parametros));
+            response.EnsureSuccessStatusCode(); //melhor forma de implementar isso?
+            var json = await response.Content.ReadAsStringAsync();
+
+            if (json.TrimStart().StartsWith("{")) //o Moodle devolve um objeto (e não uma lista) quando dá erro: token inválido, função não liberada...
+                throw new InvalidOperationException($"O Moodle retornou um erro: {json}");
+
+            var cursoEmpacotado = JsonSerializer.Deserialize<List<CursoSaidaJsonMoodleCategoriasDto>>(json) //tratar isso caso saia nulo
+                ?? new List<CursoSaidaJsonMoodleCategoriasDto>();
+
+            var curso = cursoEmpacotado[0];
+
+            return curso;
+        }
+
         public async Task<IEnumerable<CursoSaidaJsonMoodleCategoriasDto>> ObterCursosPeloIdNumberAsync(string idNumber, int depth)
         {
             var parametros = new Dictionary<string, string>
@@ -28,13 +55,17 @@ namespace PSGN.Infra.Integracoes.Moodle.Cursos
                 ["addsubcategories"] = "1"
             };
 
-            var response = _httpClient.PostAsync(_configMoodleWebApi.BaseUrl, new FormUrlEncodedContent(parametros)).Result;
-            var json = response.Content.ReadAsStringAsync().Result;
+            var response = await _httpClient.PostAsync(_configMoodleWebApi.BaseUrl, new FormUrlEncodedContent(parametros));
+            response.EnsureSuccessStatusCode(); //melhor forma de implementar isso?
+            var json = await response.Content.ReadAsStringAsync();
 
-            var listaCursos = JsonSerializer.Deserialize<List<CursoSaidaJsonMoodleCategoriasDto>>(json).Where(c => c.Depth == depth) 
-                ?? Enumerable.Empty<CursoSaidaJsonMoodleCategoriasDto>();
-            
-            return listaCursos;
+            if (json.TrimStart().StartsWith("{")) //o Moodle devolve um objeto (e não uma lista) quando dá erro: token inválido, função não liberada...
+                throw new InvalidOperationException($"O Moodle retornou um erro: {json}");
+
+            var listaCursos = JsonSerializer.Deserialize<List<CursoSaidaJsonMoodleCategoriasDto>>(json)
+                ?? new List<CursoSaidaJsonMoodleCategoriasDto>();
+
+            return listaCursos.Where(c => c.Depth == depth);
         }
     }
 }

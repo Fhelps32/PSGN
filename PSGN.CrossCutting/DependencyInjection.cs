@@ -1,9 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using PSGN.Application.Data;
 using PSGN.Application.Interfaces.ExternoServices;
+using PSGN.Application.Servicos.Cursos;
+using PSGN.Application.Servicos.Modulos;
 using PSGN.Infra.Data;
+using PSGN.Infra.Integracoes.ExternoServices;
 using PSGN.Infra.Integracoes.Moodle.Cursos;
+using PSGN.Infra.Integracoes.Moodle.Modulos;
 using PSGN.Infra.Integracoes.NSG;
 using System;
 using System.Collections.Generic;
@@ -18,11 +23,8 @@ namespace PSGN.CrossCutting
         #region Application
         public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddHttpClient<IExternoCurso, CursoMoodleSyncService>(client =>
-            {
-                client.BaseAddress = new Uri(configuration["Moodle:BaseUrl"] ?? throw new ArgumentNullException("Não foi possível obter a URL base do Moodle."));
-            });
-
+            services.AddScoped<CursoService>();
+            services.AddScoped<ModuloService>();
             return services;
         }
         #endregion
@@ -36,6 +38,18 @@ namespace PSGN.CrossCutting
             {
                 options.UseSqlServer(connectionString);
             });
+            services.AddScoped<IPSGNDbContext>(provider => provider.GetRequiredService<PSGNDbContext>());
+
+            services.AddHttpClient<IExternoCurso, CursoMoodleSyncService>();
+            services.AddHttpClient<IExternoCursoNSG, CursoNSGSyncService>(client =>
+            {
+                client.BaseAddress = new Uri(configuration["ConfigNSGApi:BaseUrl"]
+                    ?? throw new ArgumentNullException("Não foi possível obter a URL base da API do NSG."));
+            });
+            services.AddHttpClient<IExternoModulo, ModuloMoodleSyncService>();
+
+            services.Configure<ExternalServiceOptions>(configuration.GetSection("ConfigMoodleWebApi"));
+
             return services;
         }
         #endregion

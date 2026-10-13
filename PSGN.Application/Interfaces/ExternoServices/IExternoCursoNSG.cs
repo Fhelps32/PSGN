@@ -9,6 +9,6 @@ namespace PSGN.Application.Interfaces.ExternoServices
 {
     public interface IExternoCursoNSG
     {
-        public Task<CoordenadorCursoSaidaJsonDto> ObterCoordenadorDoCursoAsync(string nomeCurso);
+        public Task<CoordenadorCursoSaidaJsonDto?>ObterCoordenadorDoCursoAsync(string nomeCurso);
     }
 }

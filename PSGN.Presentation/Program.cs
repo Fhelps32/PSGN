@@ -6,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddInfraData(builder.Configuration);
+builder.Services.AddApplication(builder.Configuration);
 builder.Services
     .AddOptions<ConfigMoodleWebApi>()
     .Bind(builder.Configuration.GetSection("ConfigMoodleWebApi"))

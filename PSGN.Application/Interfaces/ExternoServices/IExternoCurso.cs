@@ -12,5 +12,6 @@ namespace PSGN.Application.Interfaces.ExternoServices
     public interface IExternoCurso
     {
         public Task<IEnumerable<CursoSaidaJsonMoodleCategoriasDto>> ObterCursosPeloIdNumberAsync(string idNumber, int depth);
+        public Task<CursoSaidaJsonMoodleCategoriasDto> ObterCursoPeloIdMoodle(int idCurso);
     }
 }

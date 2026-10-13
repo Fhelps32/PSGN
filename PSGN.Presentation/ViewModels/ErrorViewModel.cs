@@ -1,4 +1,4 @@
-namespace PSGN.Presentation.Models
+namespace PSGN.Presentation.ViewModels
 {
     public class ErrorViewModel
     {

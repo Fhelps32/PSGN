@@ -12,8 +12,9 @@ namespace PSGN.Domain
         public int IdCurso { get; set; }
         public string Nome { get; set; } = string.Empty;
         public int Numero { get; set; }
-        public string IdnumberMoodle { get; set; } = string.Empty;
+        public string IdnumberMoodle { get; set; } = string.Empty; //vai deixar esse idMoodle aí? ele vai servir pra que?
         public int IdCmidMoodle { get; set; }
+        public int IdMoodle { get; set; }
 
         public DateTime DataCadastro { get; set; } = DateTime.Now;
         public bool Status { get; set; } = true;
@@ -25,11 +26,12 @@ namespace PSGN.Domain
         #endregion
 
         private Modulo() { }
-        public Modulo(string nome, int numero, Curso curso)
+        public Modulo(string nome, int numero, int idMoodle, Curso curso)
         {
             Nome = nome ?? throw new ArgumentNullException(nameof(nome));
             Numero = numero;
             Curso = curso ?? throw new ArgumentNullException(nameof(curso));
+            IdMoodle = idMoodle;
         }
     }
 }

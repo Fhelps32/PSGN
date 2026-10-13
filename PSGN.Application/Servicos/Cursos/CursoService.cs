@@ -26,33 +26,40 @@ namespace PSGN.Application.Servicos.Cursos
         {
             var cursosExternos = await _externoCurso.ObterCursosPeloIdNumberAsync(idNumber, profundidade);
             var cursosInternos = _dbContext.Cursos.ToList();
-            var cursosParaAdicionar = cursosExternos
+            var cursosParaAdicionar = cursosExternos //todos os cursos novos que vão ser cadastrados
                 .Where(cursoExterno => !cursosInternos.Any(cursoInterno => cursoInterno.Nome == cursoExterno.Nome));
 
-            var cursosAdicionados = new List<Curso>();
+            var cursosAdicionados = new List<Curso>(); //lista pra retornar no final da função
 
             foreach (var curso in cursosParaAdicionar)
             {
-                var coordenadorDto = await _externoCursoNSG.ObterCoordenadorDoCursoAsync(curso.Nome);
+                var coordenadorNSG = await _externoCursoNSG.ObterCoordenadorDoCursoAsync(curso.Nome); //verifica qual coordenador pertence a esse curso
+                if (coordenadorNSG is null)
+                    continue; //o NSG não conhece esse curso, então não temos coordenador pra ele: pula pro próximo
+
+                var coordenadorDto = coordenadorNSG.Value;
                 if (_dbContext.Usuarios.Any(u => u.Matricula == coordenadorDto.Matricula))
                 {
+                    //se o coordenador já está cadastrado ele apenas cria o curso e adiciona o coordenador
                     var usuarioCoordenador = _dbContext.Usuarios.FirstOrDefault(u => u.Matricula == coordenadorDto.Matricula);
-                    var novoCurso = new Curso(curso.Nome, curso.Nome, usuarioCoordenador!);
+                    var novoCurso = new Curso(curso.Nome, curso.Nome, curso.Id, usuarioCoordenador!);
                     _dbContext.Cursos.Add(novoCurso);
 
-                    cursosAdicionados.Add(novoCurso);
+                    cursosAdicionados.Add(novoCurso); //adiciona na lista de pra retornar no final da função
                 }
                 else
                 {
-                    var novoUsuario = new Usuario(coordenadorDto.Matricula, coordenadorDto.Nome);
+                    //se o coordenador não estiver cadastrado: cadastramos primeiro e criamos o curso depois
+                    var novoUsuario = new Usuario(coordenadorDto.Matricula, coordenadorDto.Nome); //cria o coordenador = Usuario
                     _dbContext.Usuarios.Add(novoUsuario);
                     await _dbContext.SaveChangesAsync();
-                    var novoCurso = new Curso(curso.Nome, curso.Nome, novoUsuario!);
+                    var novoCurso = new Curso(curso.Nome, curso.Nome, curso.Id, novoUsuario!);
                     _dbContext.Cursos.Add(novoCurso);
 
-                    cursosAdicionados.Add(novoCurso);
+                    cursosAdicionados.Add(novoCurso);//adiciona na lista de pra retornar no final da função
                 }
             }
+            await _dbContext.SaveChangesAsync(); //grava no banco todos os cursos adicionados no loop
             return cursosAdicionados;
         }
     }

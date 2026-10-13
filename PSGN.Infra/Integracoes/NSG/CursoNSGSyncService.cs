@@ -18,9 +18,12 @@ namespace PSGN.Infra.Integracoes.NSG
             _httpClient = httpClient;
         }
 
-        public async Task<CoordenadorCursoSaidaJsonDto> ObterCoordenadorDoCursoAsync(string nomeCurso)
+        public async Task<CoordenadorCursoSaidaJsonDto?> ObterCoordenadorDoCursoAsync(string nomeCurso)
         {
-            var response = await _httpClient.GetAsync($"api/curso/infocursonome/{nomeCurso}");
+            var response = await _httpClient.GetAsync($"api/curso/infocursonome/{Uri.EscapeDataString(nomeCurso)}");
+            if (!response.IsSuccessStatusCode) //o NSG não encontrou o curso (404)
+                return null;
+
             var json = await response.Content.ReadAsStringAsync();
             var cursoCoordenador = JsonSerializer.Deserialize<CursoSaidaJsonNSGDto>(json);
             var coordenadorDto = new CoordenadorCursoSaidaJsonDto

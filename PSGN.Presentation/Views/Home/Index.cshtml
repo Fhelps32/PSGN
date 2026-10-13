@@ -1,8 +1,25 @@
-﻿@{
+﻿@model PSGN.Presentation.ViewModels.HomeViewModel
+@{
     ViewData["Title"] = "Home Page";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
+    <h1 class="display-4">Cursos Adicionados</h1>
+    <ul>
+        @foreach (var curso in Model.Cursos)
+        {
+            <li>Nome: @curso.Nome, Coordenador: @curso.Coordenador
+                <ul>
+                    @foreach (var modulo in curso.Modulos)
+                    {
+                        <li>
+                            Nome do Módulo: @modulo.Nome, Id no Moodle: @modulo.IdMoodle
+                        </li>
+                    }
+                </ul>
+            </li>
+            
+        }
+    </ul>
     <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
 </div>

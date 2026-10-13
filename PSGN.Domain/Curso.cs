@@ -10,10 +10,10 @@ namespace PSGN.Domain
     {
         public int IdCurso { get; set; }
         public int IdCoordenador { get; set; }
-        public int IdMoodle { get; set; } //id que vem do moodle, para poder sincronizar os cursos do moodle com o sistema
+        public int IdMoodle { get; set; }
         public string Nome { get; set; } = string.Empty;
         public string Sigla { get; set; } = string.Empty;
-        public int PerLetivo { get; set; }
+        public int PerLetivo { get; set; } = 51; //mudar essa porra aq
 
         public DateTime DataCadastro { get; set; }
         public bool Status { get; set; }
@@ -25,11 +25,12 @@ namespace PSGN.Domain
         #endregion
 
         private Curso() { }
-        public Curso(string nome, string sigla, Usuario usuarioCoordenador)
+        public Curso(string nome, string sigla, int idMoodle, Usuario usuarioCoordenador)
         {
             Nome = nome ?? throw new ArgumentNullException(nameof(nome));
             Sigla = sigla ?? throw new ArgumentNullException(nameof(sigla));
             Coordenador = usuarioCoordenador ?? throw new ArgumentNullException(nameof(usuarioCoordenador));
+            IdMoodle = idMoodle;
         }
     }
 }

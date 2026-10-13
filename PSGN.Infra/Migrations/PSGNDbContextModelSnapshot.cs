@@ -106,6 +106,9 @@ namespace PSGN.Infra.Migrations
                     b.Property<int>("IdCoordenador")
                         .HasColumnType("int");
 
+                    b.Property<int>("IdMoodle")
+                        .HasColumnType("int");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -142,6 +145,9 @@ namespace PSGN.Infra.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("IdCurso")
+                        .HasColumnType("int");
+
+                    b.Property<int>("IdMoodle")
                         .HasColumnType("int");
 
                     b.Property<string>("IdnumberMoodle")

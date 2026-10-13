@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using PSGN.Application.Data;
 using PSGN.Domain;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace PSGN.Infra.Data
 {
-    public class PSGNDbContext : DbContext
+    public class PSGNDbContext : DbContext, IPSGNDbContext
     {
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Aluno> Alunos { get; set; }

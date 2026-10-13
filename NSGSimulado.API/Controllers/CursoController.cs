@@ -61,7 +61,5 @@ namespace NSGSimulado.API.Controllers
             }
             return Ok(curso);
         }
-
-        public void CriarAlunos()
     }
 }
