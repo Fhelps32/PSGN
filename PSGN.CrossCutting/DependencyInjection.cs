@@ -5,10 +5,12 @@ using PSGN.Application.Data;
 using PSGN.Application.Interfaces.ExternoServices;
 using PSGN.Application.Servicos.Cursos;
 using PSGN.Application.Servicos.Modulos;
+using PSGN.Application.Servicos.Usuarios;
 using PSGN.Infra.Data;
 using PSGN.Infra.Integracoes.ExternoServices;
 using PSGN.Infra.Integracoes.Moodle.Cursos;
 using PSGN.Infra.Integracoes.Moodle.Modulos;
+using PSGN.Infra.Integracoes.Moodle.Usuarios;
 using PSGN.Infra.Integracoes.NSG;
 using System;
 using System.Collections.Generic;
@@ -25,6 +27,7 @@ namespace PSGN.CrossCutting
         {
             services.AddScoped<CursoService>();
             services.AddScoped<ModuloService>();
+            services.AddScoped<UsuarioService>();
             return services;
         }
         #endregion
@@ -47,6 +50,7 @@ namespace PSGN.CrossCutting
                     ?? throw new ArgumentNullException("Não foi possível obter a URL base da API do NSG."));
             });
             services.AddHttpClient<IExternoModulo, ModuloMoodleSyncService>();
+            services.AddHttpClient<IExternoUsuario, UsuarioMoodleSyncService>();
 
             services.Configure<ExternalServiceOptions>(configuration.GetSection("ConfigMoodleWebApi"));
 

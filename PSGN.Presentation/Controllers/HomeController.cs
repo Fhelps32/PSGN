@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PSGN.Application.Servicos.Cursos;
 using PSGN.Application.Servicos.Modulos;
+using PSGN.Application.Servicos.Usuarios;
 using PSGN.Domain;
 using PSGN.Presentation.ViewModels;
 using System.Diagnostics;
@@ -11,13 +12,20 @@ namespace PSGN.Presentation.Controllers
     {
         private readonly CursoService _cursoService;
         private readonly ModuloService _moduloService;
+        private readonly UsuarioService _usuarioService;
         private readonly ILogger<HomeController> _logger;
 
-        public HomeController(ILogger<HomeController> logger, CursoService cursoService, ModuloService moduloService)
+        public HomeController(
+            ILogger<HomeController> logger, 
+            CursoService cursoService, 
+            ModuloService moduloService,
+            UsuarioService usuarioService
+            )
         {
             _logger = logger;
             _cursoService = cursoService;
             _moduloService = moduloService;
+            _usuarioService = usuarioService;
         }
 
         public async Task<IActionResult> Index()
@@ -27,7 +35,8 @@ namespace PSGN.Presentation.Controllers
             foreach (var curso in cursosAdicionados)
             {
                 var cursoAdicionado = new CursoItem { Nome = curso.Nome, Coordenador = curso.Coordenador.Nome };
-                var modulosAdicionados = await _moduloService.SincronizarModulosPorCursoAsync(curso.IdMoodle.ToString());   
+                var modulosAdicionados = await _moduloService.SincronizarModulosPorCursoAsync(curso.IdMoodle.ToString());
+                var alunoModulosAdicionados = await _usuarioService.CriarUsuarioAlunosPorIdCurso(curso.IdMoodle);
 
                 foreach (var modulo in modulosAdicionados)
                 {

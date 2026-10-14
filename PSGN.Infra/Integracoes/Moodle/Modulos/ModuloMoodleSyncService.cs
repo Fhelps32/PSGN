@@ -35,7 +35,7 @@ namespace PSGN.Infra.Integracoes.Moodle.Modulos
             };
 
             var response = await _httpClient.PostAsync(_configMoodleWebApi.BaseUrl, new FormUrlEncodedContent(parametros));
-            response.EnsureSuccessStatusCode();
+            response.EnsureSuccessStatusCode(); //melhor forma de implementar isso??
             var json = await response.Content.ReadAsStringAsync();
 
             //if (json.TrimStart().StartsWith("{"))  //o Moodle devolve um objeto (e não uma lista) quando dá erro: token inválido, função não liberada...
