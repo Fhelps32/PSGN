@@ -19,9 +19,15 @@ namespace PSGN.Infra.Data.Mappings
                    .HasForeignKey(pm => pm.IdUsuario)
                    .OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(pm => pm.Modulo)
-                   .WithMany()
+                   //REVISÃO: antes era ".WithMany()" vazio. Como o Modulo tem a coleção "Professores", o EF achou que eram
+                   //DUAS relações diferentes e criou uma segunda FK escondida na tabela (coluna "ModuloIdModulo"). Ligando
+                   //explicitamente à coleção, vira uma relação só, usando o IdModulo.
+                   .WithMany(m => m.Professores)
                    .HasForeignKey(pm => pm.IdModulo)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            //REVISÃO: o mesmo professor não é vinculado duas vezes ao mesmo módulo
+            builder.HasIndex(pm => new { pm.IdUsuario, pm.IdModulo }).IsUnique();
         }
     }
 }

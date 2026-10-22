@@ -13,10 +13,10 @@ namespace PSGN.Domain
         public int IdMoodle { get; set; }
         public string Nome { get; set; } = string.Empty;
         public string Sigla { get; set; } = string.Empty;
-        public int PerLetivo { get; set; } = 51; //mudar essa porra aq
+        public int PerLetivo { get; set; } //REVISÃO: tirei o 51 fixo; agora o período letivo vem do NSG pelo construtor
 
-        public DateTime DataCadastro { get; set; }
-        public bool Status { get; set; }
+        public DateTime DataCadastro { get; set; } = DateTime.Now; //REVISÃO: mesmo padrão das outras entidades (antes era salvo 0001-01-01)
+        public bool Status { get; set; } = true; //REVISÃO: antes todo curso nascia com Status = false (inativo)
 
         #region Relações
         public Usuario Coordenador { get; set; }
@@ -25,12 +25,14 @@ namespace PSGN.Domain
         #endregion
 
         private Curso() { }
-        public Curso(string nome, string sigla, int idMoodle, Usuario usuarioCoordenador)
+        //tem que saber como vai implementar esse perLetivo aí
+        public Curso(string nome, string sigla, int idMoodle, int perLetivo, Usuario usuarioCoordenador)
         {
             Nome = nome ?? throw new ArgumentNullException(nameof(nome));
             Sigla = sigla ?? throw new ArgumentNullException(nameof(sigla));
             Coordenador = usuarioCoordenador ?? throw new ArgumentNullException(nameof(usuarioCoordenador));
             IdMoodle = idMoodle;
+            PerLetivo = perLetivo;
         }
     }
 }

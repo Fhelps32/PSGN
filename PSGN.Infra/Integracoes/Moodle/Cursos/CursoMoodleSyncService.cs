@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using PSGN.Application.Interfaces.ExternoServices;
 using PSGN.Application.Servicos.Cursos;
-using System.Text.Json;
 
 namespace PSGN.Infra.Integracoes.Moodle.Cursos
 {
@@ -16,54 +15,33 @@ namespace PSGN.Infra.Integracoes.Moodle.Cursos
             _configMoodleWebApi = options.Value;
         }
 
-        public async Task<CursoSaidaJsonMoodleCategoriasDto> ObterCursoPeloIdMoodle(int idCurso)
+        public async Task<CursoSaidaJsonMoodleCategoriasDto?> ObterCursoPeloIdMoodleAsync(int idCurso)
         {
-            var parametros = new Dictionary<string, string>
-            {
-                ["wstoken"] = _configMoodleWebApi.Token,
-                ["wsfunction"] = "core_course_get_categories",
-                ["moodlewsrestformat"] = "json",
-                ["criteria[0][key]"] = "id",
-                ["criteria[0][value]"] = idCurso.ToString(),
-                ["addsubcategories"] = "0"
-            };
+            //REVISÃO: o POST, o tratamento de erro e a desserialização agora ficam no MoodleWebApi.ChamarAsync
+            var categorias = await MoodleWebApi.ChamarAsync<List<CursoSaidaJsonMoodleCategoriasDto>>(
+                _httpClient, _configMoodleWebApi, "core_course_get_categories",
+                new Dictionary<string, string>
+                {
+                    ["criteria[0][key]"] = "id",
+                    ["criteria[0][value]"] = idCurso.ToString(),
+                    ["addsubcategories"] = "0"
+                });
 
-            var response = await _httpClient.PostAsync(_configMoodleWebApi.BaseUrl, new FormUrlEncodedContent(parametros));
-            response.EnsureSuccessStatusCode(); //melhor forma de implementar isso?
-            var json = await response.Content.ReadAsStringAsync();
-
-            if (json.TrimStart().StartsWith("{")) //o Moodle devolve um objeto (e não uma lista) quando dá erro: token inválido, função não liberada...
-                throw new InvalidOperationException($"O Moodle retornou um erro: {json}");
-
-            var cursoEmpacotado = JsonSerializer.Deserialize<List<CursoSaidaJsonMoodleCategoriasDto>>(json) //tratar isso caso saia nulo
-                ?? new List<CursoSaidaJsonMoodleCategoriasDto>();
-
-            var curso = cursoEmpacotado[0];
-
-            return curso;
+            //REVISÃO: antes era cursoEmpacotado[0], que estoura ArgumentOutOfRangeException quando o id não existe (lista vazia)
+            return categorias.Count > 0 ? categorias[0] : null;
         }
 
         public async Task<IEnumerable<CursoSaidaJsonMoodleCategoriasDto>> ObterCursosPeloIdNumberAsync(string idNumber, int depth)
         {
-            var parametros = new Dictionary<string, string>
-            {
-                ["wstoken"] = _configMoodleWebApi.Token,
-                ["wsfunction"] = "core_course_get_categories",
-                ["moodlewsrestformat"] = "json",
-                ["criteria[0][key]"] = "idnumber",
-                ["criteria[0][value]"] = idNumber,
-                ["addsubcategories"] = "1"
-            };
-
-            var response = await _httpClient.PostAsync(_configMoodleWebApi.BaseUrl, new FormUrlEncodedContent(parametros));
-            response.EnsureSuccessStatusCode(); //melhor forma de implementar isso?
-            var json = await response.Content.ReadAsStringAsync();
-
-            if (json.TrimStart().StartsWith("{")) //o Moodle devolve um objeto (e não uma lista) quando dá erro: token inválido, função não liberada...
-                throw new InvalidOperationException($"O Moodle retornou um erro: {json}");
-
-            var listaCursos = JsonSerializer.Deserialize<List<CursoSaidaJsonMoodleCategoriasDto>>(json)
-                ?? new List<CursoSaidaJsonMoodleCategoriasDto>();
+            //REVISÃO: o POST, o tratamento de erro e a desserialização agora ficam no MoodleWebApi.ChamarAsync
+            var listaCursos = await MoodleWebApi.ChamarAsync<List<CursoSaidaJsonMoodleCategoriasDto>>(
+                _httpClient, _configMoodleWebApi, "core_course_get_categories",
+                new Dictionary<string, string>
+                {
+                    ["criteria[0][key]"] = "idnumber",
+                    ["criteria[0][value]"] = idNumber,
+                    ["addsubcategories"] = "1"
+                });
 
             return listaCursos.Where(c => c.Depth == depth);
         }

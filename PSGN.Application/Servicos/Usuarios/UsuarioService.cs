@@ -1,4 +1,5 @@
-﻿using PSGN.Application.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using PSGN.Application.Data;
 using PSGN.Application.Interfaces.ExternoServices;
 using PSGN.Domain;
 using System;
@@ -12,53 +13,70 @@ namespace PSGN.Application.Servicos.Usuarios
     public class UsuarioService
     {
         private readonly IExternoUsuario _externoUsuario;
-        private readonly IExternoCurso _extrernoCurso;
         private readonly IPSGNDbContext _dbContext;
 
-        public UsuarioService(
-            IExternoUsuario externoUsuario,
-            IExternoCurso externoCurso,
-            IPSGNDbContext dbContext
-            )
+        //REVISÃO: removido o IExternoCurso (_extrernoCurso), que era injetado mas nunca usado
+        public UsuarioService(IExternoUsuario externoUsuario, IPSGNDbContext dbContext)
         {
             _externoUsuario = externoUsuario;
-            _extrernoCurso = externoCurso;
             _dbContext = dbContext;
         }
 
-        public async Task<List<AlunoModulo>> CriarUsuarioAlunosPorIdCurso(int idCursoMoodle)
+        //REVISÃO: antes era CriarUsuarioAlunosPorIdCurso(int idCursoMoodle). Recebendo o Curso já carregado, não precisa
+        //buscá-lo de novo no banco. "Sincronizar" porque agora pode rodar várias vezes sem duplicar nada.
+        public async Task<List<AlunoModulo>> SincronizarAlunosDoCursoAsync(Curso curso)
         {
-            var curso = _dbContext.Cursos.FirstOrDefault(c => c.IdMoodle == idCursoMoodle)
-                ?? throw new Exception($"Não existe nenhum curso cadastrado com o idMoodle: {idCursoMoodle}");
-
-            var modulos = _dbContext.Modulos.Where(c => c.Curso.IdMoodle == idCursoMoodle).ToList()
-                ?? throw new Exception($"Não exite nenhum módulo cadastrado para esse curso por enquanto");
+            //REVISÃO: antes tinha "ToList() ?? throw". O ToList() nunca devolve null (no máximo uma lista vazia), então
+            //aquele throw nunca acontecia. Curso sem módulo simplesmente não entra no foreach.
+            var modulos = await _dbContext.Modulos.Where(m => m.IdCurso == curso.IdCurso).ToListAsync();
 
             var alunosModulosCriados = new List<AlunoModulo>();
 
             foreach (var modulo in modulos)
             {
-                var usuariosDto = await _externoUsuario.ObterUsuariosPorModuloAsync(idCursoMoodle)
-                ?? throw new Exception("Não existe nenhum aluno inscrito nesse módulo");
+                //REVISÃO: BUG. Antes passava o idMoodle do CURSO, que no Moodle é uma CATEGORIA (ex.: 62). Só que o
+                //core_enrol_get_enrolled_users espera o id de um "course" do Moodle, que no PSGN é o MÓDULO (ex.: 721).
+                //Com o id da categoria o Moodle respondia [] e nenhum aluno era criado. (O "?? throw" que existia aqui
+                //também nunca rodava: a implementação nunca devolve null.)
+                var alunosMoodle = await _externoUsuario.ObterAlunosDoModuloAsync(modulo.IdMoodle);
 
-                foreach (var usuario in usuariosDto)
+                foreach (var alunoMoodle in alunosMoodle)
                 {
-                    if (!_dbContext.Usuarios.Any(u => u.Matricula == usuario.Matricula))
+                    //REVISÃO: BUG. Antes, se o usuário JÁ existisse no banco, o código não fazia nada, nem criava o vínculo
+                    //com este módulo. Um aluno inscrito em 9 módulos só ganharia o primeiro. E se NÃO existisse, era criado
+                    //de novo a cada módulo (o Any() não enxerga o que foi adicionado e ainda não salvo), duplicando usuário
+                    //e aluno. Agora são 3 passos "busca ou cria", um para cada nível: Usuario -> Aluno -> AlunoModulo.
+                    var usuario = await _dbContext.ObterOuCriarUsuarioAsync(alunoMoodle.Matricula, alunoMoodle.Nome);
+
+                    //REVISÃO: 1 Aluno por (usuário, curso). Antes era criado um Aluno novo para cada módulo.
+                    var aluno = await _dbContext.Alunos
+                        .FirstOrDefaultAsync(a => a.IdUsuario == usuario.IdUsuario && a.IdCurso == curso.IdCurso);
+                    if (aluno is null)
                     {
-                        var usuarioNovo = new Usuario(usuario.Matricula, usuario.Nome);
-                        _dbContext.Usuarios.Add(usuarioNovo);
+                        //REVISÃO: egresso = quem já concluiu o curso. Quem está inscrito num módulo agora não é egresso,
+                        //então começa como false (antes era true fixo).
+                        aluno = new Aluno(usuario, curso, egresso: false);
+                        _dbContext.Alunos.Add(aluno);
+                    }
 
-                        var alunoNovo = new Aluno(usuarioNovo, curso, true); //ajeitar esse egresso aq
-                        _dbContext.Alunos.Add(alunoNovo);
-
-                        var alunoModuloNovo = new AlunoModulo(alunoNovo, modulo);
+                    //REVISÃO: 1 AlunoModulo por (aluno, módulo), para não duplicar quando a sincronização roda de novo.
+                    //Se o aluno acabou de ser criado (IdAluno == 0), com certeza ainda não tem vínculo, nem precisa consultar.
+                    var jaInscrito = aluno.IdAluno != 0 && await _dbContext.AlunosModulos
+                        .AnyAsync(am => am.IdAluno == aluno.IdAluno && am.IdModulo == modulo.IdModulo);
+                    if (!jaInscrito)
+                    {
+                        var alunoModuloNovo = new AlunoModulo(aluno, modulo);
                         _dbContext.AlunosModulos.Add(alunoModuloNovo);
 
                         alunosModulosCriados.Add(alunoModuloNovo);
                     }
                 }
+
+                //REVISÃO: salva ao fim de CADA módulo (antes era uma vez só, no final). Assim, quando o mesmo aluno aparecer
+                //no próximo módulo, as consultas acima já o encontram no banco com IdUsuario/IdAluno preenchidos.
+                await _dbContext.SaveChangesAsync();
             }
-            await _dbContext.SaveChangesAsync();
+
             return alunosModulosCriados;
         }
     }

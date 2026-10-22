@@ -25,7 +25,9 @@ namespace PSGN.Domain
         public ProfessorModulo(Usuario usuario, Modulo modulo)
         {
             Usuario = usuario ?? throw new ArgumentNullException(nameof(usuario));
-            IdModulo = modulo?.IdModulo ?? throw new ArgumentNullException(nameof(modulo));
+            //REVISÃO: antes era "IdModulo = modulo?.IdModulo". Se o módulo ainda não estivesse salvo, IdModulo seria 0 e o
+            //insert quebraria na FK. Usando a navegação (igual às outras entidades), o EF preenche o IdModulo na hora de salvar.
+            Modulo = modulo ?? throw new ArgumentNullException(nameof(modulo));
         }
     }
 }

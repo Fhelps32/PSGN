@@ -4,22 +4,38 @@
 }
 
 <div class="text-center">
-    <h1 class="display-4">Cursos Adicionados</h1>
-    <ul>
-        @foreach (var curso in Model.Cursos)
-        {
-            <li>Nome: @curso.Nome, Coordenador: @curso.Coordenador
-                <ul>
-                    @foreach (var modulo in curso.Modulos)
-                    {
-                        <li>
-                            Nome do Módulo: @modulo.Nome, Id no Moodle: @modulo.IdMoodle
-                        </li>
-                    }
-                </ul>
-            </li>
-            
-        }
-    </ul>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    @* REVISÃO: a página agora lista TODOS os cursos do banco (antes só os criados naquela execução) *@
+    <h1 class="display-4">Cursos</h1>
+
+    @* REVISÃO: botão que dispara a sincronização via POST. O tag helper asp-action já coloca o token antifalsificação no form. *@
+    <form asp-action="Sincronizar" method="post" class="mb-3">
+        <button type="submit" class="btn btn-primary">Sincronizar com Moodle e NSG</button>
+    </form>
+
+    @if (Model.MensagemSincronizacao is not null)
+    {
+        <div class="alert alert-success">@Model.MensagemSincronizacao</div>
+    }
 </div>
+
+@if (Model.Cursos.Count == 0)
+{
+    <p class="text-center">Nenhum curso cadastrado ainda. Clique em "Sincronizar".</p>
+}
+
+<ul>
+    @foreach (var curso in Model.Cursos)
+    {
+        @* REVISÃO: mostra a quantidade de módulos, o que deixa fácil ver se algum curso ficou sem módulo *@
+        <li>Nome: @curso.Nome, Coordenador: @curso.Coordenador (@curso.Modulos.Count módulos)
+            <ul>
+                @foreach (var modulo in curso.Modulos)
+                {
+                    <li>
+                        Nome do Módulo: @modulo.Nome, Id no Moodle: @modulo.IdMoodle
+                    </li>
+                }
+            </ul>
+        </li>
+    }
+</ul>

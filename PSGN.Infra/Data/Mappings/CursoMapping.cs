@@ -18,6 +18,9 @@ namespace PSGN.Infra.Data.Mappings
                    .WithMany()
                    .HasForeignKey(c => c.IdCoordenador)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            //REVISÃO: cada categoria do Moodle vira um único curso. O índice garante isso no banco e deixa a busca por IdMoodle rápida.
+            builder.HasIndex(c => c.IdMoodle).IsUnique();
         }
     }
 }

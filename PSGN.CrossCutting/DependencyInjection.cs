@@ -5,9 +5,9 @@ using PSGN.Application.Data;
 using PSGN.Application.Interfaces.ExternoServices;
 using PSGN.Application.Servicos.Cursos;
 using PSGN.Application.Servicos.Modulos;
+using PSGN.Application.Servicos.Sincronizacao;
 using PSGN.Application.Servicos.Usuarios;
 using PSGN.Infra.Data;
-using PSGN.Infra.Integracoes.ExternoServices;
 using PSGN.Infra.Integracoes.Moodle.Cursos;
 using PSGN.Infra.Integracoes.Moodle.Modulos;
 using PSGN.Infra.Integracoes.Moodle.Usuarios;
@@ -28,6 +28,7 @@ namespace PSGN.CrossCutting
             services.AddScoped<CursoService>();
             services.AddScoped<ModuloService>();
             services.AddScoped<UsuarioService>();
+            services.AddScoped<SincronizacaoService>(); //REVISÃO: novo serviço que orquestra cursos -> módulos -> alunos
             return services;
         }
         #endregion
@@ -52,7 +53,8 @@ namespace PSGN.CrossCutting
             services.AddHttpClient<IExternoModulo, ModuloMoodleSyncService>();
             services.AddHttpClient<IExternoUsuario, UsuarioMoodleSyncService>();
 
-            services.Configure<ExternalServiceOptions>(configuration.GetSection("ConfigMoodleWebApi"));
+            //REVISÃO: removido o "services.Configure<ExternalServiceOptions>(...)". Era uma segunda classe de configuração lida
+            //da mesma seção que a ConfigMoodleWebApi (registrada no Program.cs). Agora todos os serviços do Moodle usam a ConfigMoodleWebApi.
 
             return services;
         }

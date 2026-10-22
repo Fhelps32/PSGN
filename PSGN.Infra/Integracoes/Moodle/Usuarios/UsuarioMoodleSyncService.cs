@@ -1,12 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using PSGN.Application.Interfaces.ExternoServices;
 using PSGN.Application.Servicos.Usuarios;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace PSGN.Infra.Integracoes.Moodle.Usuarios
 {
@@ -21,27 +15,19 @@ namespace PSGN.Infra.Integracoes.Moodle.Usuarios
             _httpClient = httpClient;
         }
 
-        public async Task<IEnumerable<UsuarioSaidaJsonMoodleDto>> ObterUsuariosPorModuloAsync(int idCurso)
+        public async Task<IEnumerable<UsuarioSaidaJsonMoodleDto>> ObterAlunosDoModuloAsync(int idModuloMoodle)
         {
-            var parametros = new Dictionary<string, string>
-            {
-                ["wstoken"] = _configMoodleWebApi.Token,
-                ["wsfunction"] = "core_enrol_get_enrolled_users",
-                ["moodlewsrestformat"] = "json",
-                ["courseid"] = idCurso.ToString()
-            };
+            //REVISÃO: o POST, o tratamento de erro e a desserialização agora ficam no MoodleWebApi.ChamarAsync. Antes este
+            //serviço não checava erro nenhum do Moodle: um token inválido virava um JsonException difícil de entender.
+            var listaUsuariosCru = await MoodleWebApi.ChamarAsync<List<UsuarioSaidaJsonMoodleDto>>(
+                _httpClient, _configMoodleWebApi, "core_enrol_get_enrolled_users",
+                new Dictionary<string, string>
+                {
+                    ["courseid"] = idModuloMoodle.ToString()
+                });
 
-            var response = await _httpClient.PostAsync(_configMoodleWebApi.BaseUrl, new FormUrlEncodedContent(parametros));
-            response.EnsureSuccessStatusCode(); //melhor forma de implementar isso??
-
-            var json = await response.Content.ReadAsStringAsync();
-
-            var listaUsuariosCru = JsonSerializer.Deserialize<List<UsuarioSaidaJsonMoodleDto>>(json)
-                ?? new List<UsuarioSaidaJsonMoodleDto>();
-
-            var listaUsuarios = listaUsuariosCru.Where(u => u.Roles.Any(r => r.Nome == "student"));
-
-            return listaUsuarios;
+            //REVISÃO: "?.Any(...) == true" protege contra um usuário vir sem a lista de roles (antes daria NullReferenceException)
+            return listaUsuariosCru.Where(u => u.Roles?.Any(r => r.Nome == "student") == true);
         }
     }
 }

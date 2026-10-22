@@ -1,6 +1,4 @@
-﻿using PSGN;
-using PSGN.Application.Servicos.Cursos;
-using PSGN.Domain;
+﻿using PSGN.Application.Servicos.Cursos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +10,9 @@ namespace PSGN.Application.Interfaces.ExternoServices
     public interface IExternoCurso
     {
         public Task<IEnumerable<CursoSaidaJsonMoodleCategoriasDto>> ObterCursosPeloIdNumberAsync(string idNumber, int depth);
-        public Task<CursoSaidaJsonMoodleCategoriasDto> ObterCursoPeloIdMoodle(int idCurso);
+
+        //REVISÃO: agora devolve null se o id não existir no Moodle (antes estourava ArgumentOutOfRangeException) e ganhou o
+        //sufixo Async, como os outros métodos assíncronos. O ModuloService não usa mais esse método; mantive porque pode ser útil.
+        public Task<CursoSaidaJsonMoodleCategoriasDto?> ObterCursoPeloIdMoodleAsync(int idCurso);
     }
 }

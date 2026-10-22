@@ -52,7 +52,8 @@ namespace PSGN.Infra.Migrations
 
                     b.HasIndex("IdCurso");
 
-                    b.HasIndex("IdUsuario");
+                    b.HasIndex("IdUsuario", "IdCurso")
+                        .IsUnique();
 
                     b.ToTable("Alunos");
                 });
@@ -85,9 +86,10 @@ namespace PSGN.Infra.Migrations
 
                     b.HasKey("IdAlunoModulo");
 
-                    b.HasIndex("IdAluno");
-
                     b.HasIndex("IdModulo");
+
+                    b.HasIndex("IdAluno", "IdModulo")
+                        .IsUnique();
 
                     b.ToTable("AlunosModulos");
                 });
@@ -126,6 +128,9 @@ namespace PSGN.Infra.Migrations
                     b.HasKey("IdCurso");
 
                     b.HasIndex("IdCoordenador");
+
+                    b.HasIndex("IdMoodle")
+                        .IsUnique();
 
                     b.ToTable("Cursos");
                 });
@@ -168,6 +173,9 @@ namespace PSGN.Infra.Migrations
 
                     b.HasIndex("IdCurso");
 
+                    b.HasIndex("IdMoodle")
+                        .IsUnique();
+
                     b.ToTable("Modulos");
                 });
 
@@ -188,9 +196,6 @@ namespace PSGN.Infra.Migrations
                     b.Property<int>("IdUsuario")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ModuloIdModulo")
-                        .HasColumnType("int");
-
                     b.Property<bool>("Status")
                         .HasColumnType("bit");
 
@@ -198,9 +203,8 @@ namespace PSGN.Infra.Migrations
 
                     b.HasIndex("IdModulo");
 
-                    b.HasIndex("IdUsuario");
-
-                    b.HasIndex("ModuloIdModulo");
+                    b.HasIndex("IdUsuario", "IdModulo")
+                        .IsUnique();
 
                     b.ToTable("ProfessoresModulos");
                 });
@@ -267,7 +271,8 @@ namespace PSGN.Infra.Migrations
 
                     b.Property<string>("Matricula")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Nome")
                         .IsRequired()
@@ -277,6 +282,9 @@ namespace PSGN.Infra.Migrations
                         .HasColumnType("bit");
 
                     b.HasKey("IdUsuario");
+
+                    b.HasIndex("Matricula")
+                        .IsUnique();
 
                     b.ToTable("Usuarios");
                 });
@@ -344,7 +352,7 @@ namespace PSGN.Infra.Migrations
             modelBuilder.Entity("PSGN.Domain.ProfessorModulo", b =>
                 {
                     b.HasOne("PSGN.Domain.Modulo", "Modulo")
-                        .WithMany()
+                        .WithMany("Professores")
                         .HasForeignKey("IdModulo")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -354,10 +362,6 @@ namespace PSGN.Infra.Migrations
                         .HasForeignKey("IdUsuario")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("PSGN.Domain.Modulo", null)
-                        .WithMany("Professores")
-                        .HasForeignKey("ModuloIdModulo");
 
                     b.Navigation("Modulo");
 

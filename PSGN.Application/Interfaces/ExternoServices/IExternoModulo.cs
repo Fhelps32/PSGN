@@ -9,6 +9,7 @@ namespace PSGN.Application.Interfaces.ExternoServices
 {
     public interface IExternoModulo
     {
-        public Task<ICollection<ModuloSaidaJsonMoodleDto>> ObterModulosPeloIdCategoria(string idCategoriaMoodle);
+        //REVISÃO: o id da categoria agora é int (antes era string, e o ModuloService tinha que converter de um pro outro)
+        public Task<List<ModuloSaidaJsonMoodleDto>> ObterModulosPeloIdCategoriaAsync(int idCategoriaMoodle);
     }
 }
