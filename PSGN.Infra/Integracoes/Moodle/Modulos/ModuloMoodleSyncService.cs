@@ -32,5 +32,16 @@ namespace PSGN.Infra.Integracoes.Moodle.Modulos
             //REVISÃO: o foreach que copiava item por item para uma lista nova virou isso; o "?? new()" cobre a lista vir null
             return resposta.Modulos ?? new List<ModuloSaidaJsonMoodleDto>();
         }
+
+        public async Task<ModuloQuestionarioSaidaJsonMoodleDto> ObterQuestionarioFinalPeloIdModulo (int idModuloMoodle)
+        {
+            var resposta = await MoodleWebApi.ChamarAsync<ModuloConjuntoQuestionarioSaidaJsonMoodleDto>(_httpClient, _configMoodleWebApi, "mod_quiz_get_quizzes_by_courses",
+                new Dictionary<string, string>
+                {
+                    ["courseids[0]"] = idModuloMoodle.ToString()
+                });
+
+            return resposta.Questionarios.FirstOrDefault(q => q.Nome == "Avaliação Final do Módulo"); //melhorar essa saída aqui
+        }
     }
 }

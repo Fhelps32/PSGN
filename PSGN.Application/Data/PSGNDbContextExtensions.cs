@@ -9,7 +9,7 @@ namespace PSGN.Application.Data
     {
         public static async Task<Usuario> ObterOuCriarUsuarioAsync(this IPSGNDbContext dbContext, string matricula, string nome)
         {
-            //REVISÃO: o "Local" são as entidades que o EF já está rastreando nesta requisição, INCLUSIVE as que receberam Add()
+            //REVISÃO: o "Local" são as entidades que o EF já está rastreando nesta requisição, INCLUSIVE as que receberam Add()    
             //e ainda não foram salvas. Uma consulta normal (Any/FirstOrDefault) vai no banco e não enxerga essas. Era isso que
             //fazia o mesmo usuário ser criado de novo dentro do mesmo loop. Primeiro olha na memória, depois no banco.
             var usuario = dbContext.Usuarios.Local.FirstOrDefault(u => u.Matricula == matricula)

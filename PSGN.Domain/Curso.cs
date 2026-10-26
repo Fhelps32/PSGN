@@ -15,8 +15,8 @@ namespace PSGN.Domain
         public string Sigla { get; set; } = string.Empty;
         public int PerLetivo { get; set; } //REVISÃO: tirei o 51 fixo; agora o período letivo vem do NSG pelo construtor
 
-        public DateTime DataCadastro { get; set; } = DateTime.Now; //REVISÃO: mesmo padrão das outras entidades (antes era salvo 0001-01-01)
-        public bool Status { get; set; } = true; //REVISÃO: antes todo curso nascia com Status = false (inativo)
+        public DateTime DataCadastro { get; set; } = DateTime.Now;
+        public bool Status { get; set; } = true;
 
         #region Relações
         public Usuario Coordenador { get; set; }

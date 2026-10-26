@@ -25,4 +25,19 @@ namespace PSGN.Application.Servicos.Modulos
         [JsonPropertyName("courses")]
         public List<ModuloSaidaJsonMoodleDto> Modulos { get; set; }
     }
+
+    public struct ModuloQuestionarioSaidaJsonMoodleDto
+    {
+        [JsonPropertyName("coursemodule")]
+        public int IdQuestionario { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Nome { get; set; }
+    }
+
+    public struct ModuloConjuntoQuestionarioSaidaJsonMoodleDto
+    {
+        [JsonPropertyName("quizzes")]
+        public List<ModuloQuestionarioSaidaJsonMoodleDto> Questionarios { get; set; }
+    }
 }

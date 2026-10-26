@@ -45,8 +45,10 @@ namespace PSGN.Application.Servicos.Modulos
             {
                 //REVISÃO: o número do módulo continua fixo em 67 (seu TODO). O Moodle não informa a ordem do módulo no
                 //curso de forma confiável; quando o NSG simulado tiver esse dado, é de lá que ele deve vir.
-                var novoModulo = new Modulo(modulo.Nome, 67, modulo.IdMoodle, curso);
 
+                var novoModulo = new Modulo(modulo.Nome, 67, modulo.IdMoodle, curso);
+                var questionario = await _externoModulo.ObterQuestionarioFinalPeloIdModulo(modulo.IdMoodle);
+                novoModulo.IdCmidMoodle = questionario.IdQuestionario; //bota o id do questionário junto
                 modulosAdicionados.Add(novoModulo);
                 _dbContext.Modulos.Add(novoModulo);
             }
