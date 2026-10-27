@@ -33,7 +33,11 @@ namespace PSGN.Infra.Integracoes.Moodle.Modulos
             return resposta.Modulos ?? new List<ModuloSaidaJsonMoodleDto>();
         }
 
-        public async Task<ModuloQuestionarioSaidaJsonMoodleDto> ObterQuestionarioFinalPeloIdModulo (int idModuloMoodle)
+        //REVISÃO: o nome do questionário que vale como prova do módulo virou constante (antes era um texto solto no meio do método)
+        private const string NomeQuestionarioFinal = "Avaliação Final do Módulo";
+
+        //REVISÃO: renomeado para ObterQuestionarioFinalPeloIdModuloAsync e agora devolve null quando não acha o questionário
+        public async Task<ModuloQuestionarioSaidaJsonMoodleDto?> ObterQuestionarioFinalPeloIdModuloAsync(int idModuloMoodle)
         {
             var resposta = await MoodleWebApi.ChamarAsync<ModuloConjuntoQuestionarioSaidaJsonMoodleDto>(_httpClient, _configMoodleWebApi, "mod_quiz_get_quizzes_by_courses",
                 new Dictionary<string, string>
@@ -41,7 +45,14 @@ namespace PSGN.Infra.Integracoes.Moodle.Modulos
                     ["courseids[0]"] = idModuloMoodle.ToString()
                 });
 
-            return resposta.Questionarios.FirstOrDefault(q => q.Nome == "Avaliação Final do Módulo"); //melhorar essa saída aqui
+            //REVISÃO: (resolve o seu "melhorar essa saída aqui") duas falhas do FirstOrDefault antigo:
+            // 1) se o módulo não tem nenhum questionário, o Moodle nem manda a chave "quizzes" e "Questionarios" vinha null,
+            //    estourando NullReferenceException; o "?? new()" cobre isso.
+            // 2) como o DTO é struct, FirstOrDefault devolvia um struct zerado quando não achava. O FindIndex permite devolver
+            //    null de verdade (índice -1), que é o que o ModuloService precisa para saber que o módulo está sem prova.
+            var questionarios = resposta.Questionarios ?? new List<ModuloQuestionarioSaidaJsonMoodleDto>();
+            var indice = questionarios.FindIndex(q => q.Nome == NomeQuestionarioFinal);
+            return indice >= 0 ? questionarios[indice] : null;
         }
     }
 }

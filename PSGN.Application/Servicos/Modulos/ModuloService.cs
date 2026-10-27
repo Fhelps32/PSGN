@@ -39,6 +39,20 @@ namespace PSGN.Application.Servicos.Modulos
                 .Select(m => m.IdMoodle)
                 .ToListAsync()).ToHashSet();
 
+            //REVISÃO: preenche o IdCmidMoodle dos módulos que JÁ estão no banco e ainda não têm esse valor (0). O cmid só era
+            //preenchido na criação do módulo; todos os módulos cadastrados antes disso ficariam para sempre com 0, e como a
+            //sincronização de tentativas depende do cmid, eles nunca teriam tentativas. Esta consulta roda ANTES de adicionar
+            //os módulos novos abaixo, então traz apenas módulos antigos (os novos já nascem com o cmid).
+            var modulosSemCmid = await _dbContext.Modulos
+                .Where(m => m.IdCurso == curso.IdCurso && m.IdCmidMoodle == 0)
+                .ToListAsync();
+            foreach (var moduloSemCmid in modulosSemCmid)
+            {
+                var questionarioExistente = await _externoModulo.ObterQuestionarioFinalPeloIdModuloAsync(moduloSemCmid.IdMoodle);
+                if (questionarioExistente is not null)
+                    moduloSemCmid.IdCmidMoodle = questionarioExistente.Value.IdQuestionario; //o EF detecta a mudança e grava no SaveChanges abaixo
+            }
+
             var modulosAdicionados = new List<Modulo>();
 
             foreach (var modulo in modulosMoodle.Where(m => !idsMoodleCadastrados.Contains(m.IdMoodle)))
@@ -47,8 +61,13 @@ namespace PSGN.Application.Servicos.Modulos
                 //curso de forma confiável; quando o NSG simulado tiver esse dado, é de lá que ele deve vir.
 
                 var novoModulo = new Modulo(modulo.Nome, 67, modulo.IdMoodle, curso);
-                var questionario = await _externoModulo.ObterQuestionarioFinalPeloIdModulo(modulo.IdMoodle);
-                novoModulo.IdCmidMoodle = questionario.IdQuestionario; //bota o id do questionário junto
+
+                //REVISÃO: o método agora devolve null se o módulo não tem "Avaliação Final do Módulo". Nesse caso o IdCmidMoodle
+                //fica em 0 (o valor padrão), e o módulo é simplesmente pulado na sincronização de tentativas. Antes um struct
+                //zerado dava o mesmo 0, mas sem ninguém conseguir saber se foi "não achou" ou um valor de verdade.
+                var questionario = await _externoModulo.ObterQuestionarioFinalPeloIdModuloAsync(modulo.IdMoodle);
+                if (questionario is not null)
+                    novoModulo.IdCmidMoodle = questionario.Value.IdQuestionario; //bota o id do questionário junto
                 modulosAdicionados.Add(novoModulo);
                 _dbContext.Modulos.Add(novoModulo);
             }

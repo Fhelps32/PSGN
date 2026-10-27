@@ -61,7 +61,11 @@ namespace PSGN.Presentation.Controllers
             //REVISÃO: TempData sobrevive a um redirect, então o Index consegue mostrar o resumo
             TempData["MensagemSincronizacao"] =
                 $"Sincronização concluída: {resultado.CursosAdicionados} curso(s), " +
-                $"{resultado.ModulosAdicionados} módulo(s) e {resultado.InscricoesAdicionadas} inscrição(ões) de aluno novos.";
+                $"{resultado.ModulosAdicionados} módulo(s) e {resultado.InscricoesAdicionadas} inscrição(ões) de aluno novos. " +
+                //REVISÃO: resumo das tentativas. As "ignoradas" aparecem de propósito, para uma tentativa que não conseguiu se
+                //ligar a nenhum aluno não sumir em silêncio.
+                $"Tentativas: {resultado.TentativasAdicionadas} nova(s), {resultado.TentativasAtualizadas} atualizada(s), " +
+                $"{resultado.TentativasIgnoradas} ignorada(s) (aluno não encontrado no módulo).";
 
             return RedirectToAction(nameof(Index));
         }

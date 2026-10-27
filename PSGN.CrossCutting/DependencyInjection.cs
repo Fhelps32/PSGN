@@ -6,10 +6,12 @@ using PSGN.Application.Interfaces.ExternoServices;
 using PSGN.Application.Servicos.Cursos;
 using PSGN.Application.Servicos.Modulos;
 using PSGN.Application.Servicos.Sincronizacao;
+using PSGN.Application.Servicos.Tentativas;
 using PSGN.Application.Servicos.Usuarios;
 using PSGN.Infra.Data;
 using PSGN.Infra.Integracoes.Moodle.Cursos;
 using PSGN.Infra.Integracoes.Moodle.Modulos;
+using PSGN.Infra.Integracoes.Moodle.Tentativas;
 using PSGN.Infra.Integracoes.Moodle.Usuarios;
 using PSGN.Infra.Integracoes.NSG;
 using System;
@@ -28,7 +30,8 @@ namespace PSGN.CrossCutting
             services.AddScoped<CursoService>();
             services.AddScoped<ModuloService>();
             services.AddScoped<UsuarioService>();
-            services.AddScoped<SincronizacaoService>(); //REVISÃO: novo serviço que orquestra cursos -> módulos -> alunos
+            services.AddScoped<TentativaService>(); //REVISÃO: faltava registrar; sem isso o SincronizacaoService não conseguiria ser criado
+            services.AddScoped<SincronizacaoService>(); //REVISÃO: novo serviço que orquestra cursos -> módulos -> alunos -> tentativas
             return services;
         }
         #endregion
@@ -52,6 +55,7 @@ namespace PSGN.CrossCutting
             });
             services.AddHttpClient<IExternoModulo, ModuloMoodleSyncService>();
             services.AddHttpClient<IExternoUsuario, UsuarioMoodleSyncService>();
+            services.AddHttpClient<IExternoTentativa, TentativaMoodleSyncService>(); //REVISÃO: faltava registrar o cliente das tentativas
 
             //REVISÃO: removido o "services.Configure<ExternalServiceOptions>(...)". Era uma segunda classe de configuração lida
             //da mesma seção que a ConfigMoodleWebApi (registrada no Program.cs). Agora todos os serviços do Moodle usam a ConfigMoodleWebApi.
