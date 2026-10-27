@@ -1,71 +1,45 @@
-using PSGN.Application.Servicos.Cursos;
-using PSGN.Application.Servicos.Modulos;
-using PSGN.Application.Servicos.Tentativas;
-using PSGN.Application.Servicos.Usuarios;
+using PSGN.Application.Servicos.Cursos; // CursoService
+using PSGN.Application.Servicos.Modulos; // ModuloService
+using PSGN.Application.Servicos.Tentativas; // TentativaService
+using PSGN.Application.Servicos.Usuarios; // UsuarioService
+using PSGN.Domain; // a entidade Curso, que é o que o método devolve
 
-namespace PSGN.Application.Servicos.Sincronizacao
+namespace PSGN.Application.Servicos.Sincronizacao // pasta do serviço que coordena os outros
 {
-    //REVISÃO: classe nova. A ordem da sincronização (cursos -> módulos -> alunos) é regra de negócio, então saiu do
-    //HomeController e veio para a camada de Application. O controller só chama um método e mostra o resultado.
-    //REVISÃO (tentativas): a sequência agora é cursos -> módulos -> alunos -> TENTATIVAS.
-    public class SincronizacaoService
+    public class SincronizacaoService // orquestra a sequência cursos -> módulos -> alunos -> tentativas
     {
-        private readonly CursoService _cursoService;
-        private readonly ModuloService _moduloService;
-        private readonly UsuarioService _usuarioService;
-        private readonly TentativaService _tentativaService; //REVISÃO: novo, injetado pelo construtor
+        private readonly CursoService _cursoService; // sincroniza e lista os cursos
+        private readonly ModuloService _moduloService; // sincroniza os módulos de um curso
+        private readonly UsuarioService _usuarioService; // sincroniza os alunos (Usuario, Aluno, AlunoModulo) de um curso
+        private readonly TentativaService _tentativaService; // sincroniza as tentativas dos módulos de um curso
 
-        public SincronizacaoService(
-            CursoService cursoService,
-            ModuloService moduloService,
-            UsuarioService usuarioService,
-            TentativaService tentativaService)
+        public SincronizacaoService( // o ASP.NET entrega os quatro serviços pelo construtor (por isso todos estão registrados em DependencyInjection.cs)
+            CursoService cursoService, // parâmetro do serviço de cursos
+            ModuloService moduloService, // parâmetro do serviço de módulos
+            UsuarioService usuarioService, // parâmetro do serviço de usuários/alunos
+            TentativaService tentativaService) // parâmetro do serviço de tentativas
         {
-            _cursoService = cursoService;
-            _moduloService = moduloService;
-            _usuarioService = usuarioService;
-            _tentativaService = tentativaService;
-        }
+            _cursoService = cursoService; // guarda para usar no método abaixo
+            _moduloService = moduloService; // guarda para usar no método abaixo
+            _usuarioService = usuarioService; // guarda para usar no método abaixo
+            _tentativaService = tentativaService; // guarda para usar no método abaixo
+        } // fim do construtor
 
-        public async Task<ResultadoSincronizacaoDto> SincronizarTudoAsync(string idNumberCategoriaRaiz, int profundidadeCursos)
+        // REVISÃO: devolve List<Curso> (entidade do domain) em vez do ResultadoSincronizacaoDto, igual os outros services; o DTO e o ResultadoTentativasDto foram removidos
+        public async Task<List<Curso>> SincronizarTudoAsync(string idNumberCategoriaRaiz, int profundidadeCursos) // recebe a categoria raiz e a profundidade usadas para achar os cursos no Moodle
         {
-            var cursosAdicionados = await _cursoService.SincronizarCursosAsync(idNumberCategoriaRaiz, profundidadeCursos);
+            await _cursoService.SincronizarCursosAsync(idNumberCategoriaRaiz, profundidadeCursos); // 1º passo: cria no banco os cursos que existem no Moodle e ainda não existem aqui
 
-            //REVISÃO: ESTA é a correção do problema dos módulos. Antes o HomeController só sincronizava os módulos dos cursos
-            //que tinham acabado de ser CRIADOS naquela execução. Como os cursos são salvos ANTES dos módulos, bastava uma
-            //execução parar no meio (erro, Moodle fora do ar, parar o debug) para os cursos ficarem gravados sem módulos. Nas
-            //execuções seguintes eles já não eram "novos" e nunca mais tinham os módulos buscados. Agora todo curso cadastrado
-            //passa pela sincronização de módulos e alunos, e como os serviços não duplicam nada, rodar de novo só completa o que faltou.
-            var cursos = await _cursoService.ListarCursosAsync();
+            var cursos = await _cursoService.ListarCursosAsync(); // lê TODOS os cursos do banco, não só os recém-criados, para uma execução interrompida ser completada na seguinte
 
-            var modulosAdicionados = 0;
-            var inscricoesAdicionadas = 0;
-            var tentativas = new ResultadoTentativasDto(0, 0, 0); //REVISÃO: acumula o resumo das tentativas de todos os cursos
-            foreach (var curso in cursos)
+            foreach (var curso in cursos) // para cada curso, executa os passos 2, 3 e 4 nesta ordem
             {
-                modulosAdicionados += (await _moduloService.SincronizarModulosDoCursoAsync(curso)).Count;
-                inscricoesAdicionadas += (await _usuarioService.SincronizarAlunosDoCursoAsync(curso)).Count;
+                await _moduloService.SincronizarModulosDoCursoAsync(curso); // 2º passo: cria os módulos e preenche o IdCmidMoodle (cmid do questionário final) que as tentativas precisam
+                await _usuarioService.SincronizarAlunosDoCursoAsync(curso); // 3º passo: cria Usuario, Aluno e AlunoModulo; a tentativa precisa do AlunoModulo para se ligar a alguém
+                await _tentativaService.SincronizarTentativasDoCursoAsync(curso); // 4º passo (por último de propósito): sem módulo+cmid e sem AlunoModulo, nenhuma tentativa seria importada
+            } // fim do foreach dos cursos
 
-                //REVISÃO: tentativas por último, dentro do mesmo laço. A ORDEM IMPORTA: cada tentativa se liga a um AlunoModulo,
-                //que só existe depois da sincronização de alunos do curso, e precisa do IdCmidMoodle que o módulo recebe na
-                //sincronização de módulos. Se rodasse antes, todas seriam ignoradas por "aluno não encontrado".
-                tentativas += await _tentativaService.SincronizarTentativasDoCursoAsync(curso);
-            }
-
-            return new ResultadoSincronizacaoDto(
-                cursosAdicionados.Count(), modulosAdicionados, inscricoesAdicionadas,
-                tentativas.Adicionadas, tentativas.Atualizadas, tentativas.Ignoradas);
-        }
-    }
-
-    //REVISÃO: resumo do que foi criado, para a tela avisar o usuário
-    //REVISÃO (tentativas): ganhou 3 números no final: tentativas novas, tentativas que mudaram no Moodle (nota/data) e
-    //tentativas ignoradas (aluno que não está no módulo no PSGN, ou tentativa sem data de início).
-    public record ResultadoSincronizacaoDto(
-        int CursosAdicionados,
-        int ModulosAdicionados,
-        int InscricoesAdicionadas,
-        int TentativasAdicionadas,
-        int TentativasAtualizadas,
-        int TentativasIgnoradas);
-}
+            return cursos; // devolve os cursos sincronizados; a tela usa isso para montar o aviso
+        } // fim do método
+    } // fim da classe
+} // fim do namespace

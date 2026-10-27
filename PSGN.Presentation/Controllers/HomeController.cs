@@ -1,84 +1,69 @@
-using Microsoft.AspNetCore.Mvc;
-using PSGN.Application.Servicos.Cursos;
-using PSGN.Application.Servicos.Sincronizacao;
-using PSGN.Presentation.ViewModels;
-using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc; // Controller, IActionResult, [HttpPost], [ValidateAntiForgeryToken]
+using PSGN.Application.Servicos.Cursos; // CursoService
+using PSGN.Application.Servicos.Sincronizacao; // SincronizacaoService
+using PSGN.Presentation.ViewModels; // HomeViewModel, CursoItem, ModuloItem, ErrorViewModel
+using System.Diagnostics; // Activity, usado na action Error
 
-namespace PSGN.Presentation.Controllers
+namespace PSGN.Presentation.Controllers // pasta dos controllers do MVC
 {
-    public class HomeController : Controller
+    public class HomeController : Controller // controller da página inicial
     {
-        private readonly CursoService _cursoService;
-        private readonly SincronizacaoService _sincronizacaoService;
-        private readonly ILogger<HomeController> _logger;
+        private readonly CursoService _cursoService; // usado para LER os cursos que aparecem na tela
+        private readonly SincronizacaoService _sincronizacaoService; // usado pelo botão "Sincronizar"
+        private readonly ILogger<HomeController> _logger; // log do ASP.NET (injetado, ainda não usado)
 
-        //REVISÃO: o controller não recebe mais ModuloService e UsuarioService. Quem coordena a sincronização agora é o
-        //SincronizacaoService (camada Application).
-        public HomeController(
-            ILogger<HomeController> logger,
-            CursoService cursoService,
-            SincronizacaoService sincronizacaoService
-            )
+        public HomeController( // o ASP.NET entrega as dependências pelo construtor
+            ILogger<HomeController> logger, // parâmetro do log
+            CursoService cursoService, // parâmetro do serviço de cursos
+            SincronizacaoService sincronizacaoService // parâmetro do serviço de sincronização
+            ) // fim da lista de parâmetros
         {
-            _logger = logger;
-            _cursoService = cursoService;
-            _sincronizacaoService = sincronizacaoService;
-        }
+            _logger = logger; // guarda o log
+            _cursoService = cursoService; // guarda o serviço de cursos
+            _sincronizacaoService = sincronizacaoService; // guarda o serviço de sincronização
+        } // fim do construtor
 
-        //REVISÃO: o Index agora só LÊ do banco e mostra os cursos com seus módulos. Antes ele sincronizava tudo a cada
-        //abertura da página: cada F5 fazia dezenas de chamadas ao Moodle, e a tela só mostrava o que tinha sido criado
-        //naquela execução (por isso, depois da primeira vez, a lista vinha vazia).
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index() // action da página inicial; só LÊ do banco, não sincroniza
         {
-            var cursos = await _cursoService.ListarCursosAsync();
+            var cursos = await _cursoService.ListarCursosAsync(); // busca no banco os cursos já com coordenador e módulos
 
-            var viewModel = new HomeViewModel
-            {
-                MensagemSincronizacao = TempData["MensagemSincronizacao"] as string,
-                Cursos = cursos.Select(curso => new CursoItem
-                {
-                    Nome = curso.Nome,
-                    Coordenador = curso.Coordenador.Nome,
-                    Modulos = curso.Modulos
-                        .OrderBy(modulo => modulo.Nome)
-                        //REVISÃO: antes o campo "Id no Moodle" recebia modulo.IdModulo, que é o id do NOSSO banco
-                        .Select(modulo => new ModuloItem { Nome = modulo.Nome, IdMoodle = modulo.IdMoodle })
-                        .ToList()
-                }).ToList()
-            };
-            return View(viewModel);
-        }
+            var viewModel = new HomeViewModel // monta o objeto que a View (Razor) vai exibir
+            { // inicializador de objeto
+                MensagemSincronizacao = TempData["MensagemSincronizacao"] as string, // pega o aviso deixado pela action Sincronizar (null se não houver)
+                Cursos = cursos.Select(curso => new CursoItem // converte cada Curso do domain em um CursoItem da tela
+                { // inicializador do CursoItem
+                    Nome = curso.Nome, // nome do curso
+                    Coordenador = curso.Coordenador.Nome, // nome do coordenador
+                    Modulos = curso.Modulos // parte da lista de módulos do curso
+                        .OrderBy(modulo => modulo.Nome) // ordena alfabeticamente
+                        .Select(modulo => new ModuloItem { Nome = modulo.Nome, IdMoodle = modulo.IdMoodle }) // converte cada Modulo em ModuloItem, mostrando o id do Moodle (não o id do nosso banco)
+                        .ToList() // fecha como lista
+                }).ToList() // fim do CursoItem e da lista de cursos
+            }; // fim do HomeViewModel
+            return View(viewModel); // entrega o viewModel à View Index
+        } // fim da action Index
 
-        //REVISÃO: action nova, chamada pelo botão "Sincronizar". É POST porque altera dados: navegadores, pré-carregamento
-        //de links e robôs podem disparar GETs sozinhos. O [ValidateAntiForgeryToken] impede que outro site dispare o POST.
-        //Depois de sincronizar, redireciona para o Index (padrão Post/Redirect/Get), então um F5 não sincroniza de novo.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Sincronizar()
+        [HttpPost] // só responde a POST, porque sincronizar altera dados e um GET pode ser disparado sozinho por navegador ou robô
+        [ValidateAntiForgeryToken] // exige o token do formulário, impedindo que outro site dispare este POST
+        public async Task<IActionResult> Sincronizar() // action chamada pelo botão "Sincronizar"
         {
-            var resultado = await _sincronizacaoService.SincronizarTudoAsync("EAD", 3);
+            // REVISÃO: o service agora devolve List<Curso> (domain), então a mensagem usa a quantidade de cursos sincronizados
+            var cursos = await _sincronizacaoService.SincronizarTudoAsync("EAD", 3); // roda cursos -> módulos -> alunos -> tentativas, usando a categoria raiz "EAD" e profundidade 3
 
-            //REVISÃO: TempData sobrevive a um redirect, então o Index consegue mostrar o resumo
-            TempData["MensagemSincronizacao"] =
-                $"Sincronização concluída: {resultado.CursosAdicionados} curso(s), " +
-                $"{resultado.ModulosAdicionados} módulo(s) e {resultado.InscricoesAdicionadas} inscrição(ões) de aluno novos. " +
-                //REVISÃO: resumo das tentativas. As "ignoradas" aparecem de propósito, para uma tentativa que não conseguiu se
-                //ligar a nenhum aluno não sumir em silêncio.
-                $"Tentativas: {resultado.TentativasAdicionadas} nova(s), {resultado.TentativasAtualizadas} atualizada(s), " +
-                $"{resultado.TentativasIgnoradas} ignorada(s) (aluno não encontrado no módulo).";
+            TempData["MensagemSincronizacao"] = $"Sincronização concluída: {cursos.Count} curso(s) sincronizado(s) (módulos, alunos e tentativas incluídos)."; // TempData sobrevive ao redirect, então o Index consegue mostrar o aviso
 
-            return RedirectToAction(nameof(Index));
-        }
+            return RedirectToAction(nameof(Index)); // redireciona para o Index (Post/Redirect/Get): um F5 depois não sincroniza de novo
+        } // fim da action Sincronizar
 
-        public IActionResult Privacy()
+        public IActionResult Privacy() // action da página de privacidade (padrão do template)
         {
-            return View();
-        }
+            return View(); // só devolve a View
+        } // fim da action Privacy
 
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)] // impede o navegador de guardar a página de erro em cache
+        public IActionResult Error() // action da página de erro (padrão do template)
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }
-    }
-}
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier }); // envia o id da requisição para a View, para facilitar achar o erro no log
+        } // fim da action Error
+    } // fim da classe
+} // fim do namespace

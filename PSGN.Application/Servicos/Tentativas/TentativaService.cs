@@ -1,127 +1,92 @@
-﻿using Microsoft.EntityFrameworkCore;
-using PSGN.Application.Data;
-using PSGN.Application.Interfaces.ExternoServices;
-using PSGN.Domain;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.EntityFrameworkCore; // traz ToListAsync, Include, ThenInclude e ToDictionaryAsync, que transformam consultas LINQ em SQL
+using PSGN.Application.Data; // onde está a interface IPSGNDbContext (o acesso ao banco)
+using PSGN.Application.Interfaces.ExternoServices; // onde está a interface IExternoTentativa (o acesso ao Moodle)
+using PSGN.Domain; // as entidades Curso, Modulo, AlunoModulo e Tentativa
+using System; // TimeSpan
+using System.Collections.Generic; // List<T>
+using System.Linq; // Where, ToDictionary
+using System.Threading.Tasks; // Task, para os métodos async
 
-namespace PSGN.Application.Servicos.Tentativas
+namespace PSGN.Application.Servicos.Tentativas // mesma organização dos outros services: uma pasta por assunto
 {
-    public class TentativaService
+    public class TentativaService // serviço que sincroniza as tentativas do Moodle com o banco do PSGN
     {
-        private readonly IExternoTentativa _externoTentativa;
-        private readonly IPSGNDbContext _dbContext;
+        private readonly IExternoTentativa _externoTentativa; // quem busca as tentativas no Moodle (a implementação fica na Infra)
+        private readonly IPSGNDbContext _dbContext; // quem lê e grava no banco do PSGN
 
-        //REVISÃO: o service agora recebe o IPSGNDbContext (igual aos outros services), porque precisa gravar as tentativas
-        //e procurar o AlunoModulo de cada uma. O parâmetro também foi renomeado (externoTentaiva -> externoTentativa).
-        public TentativaService(IExternoTentativa externoTentativa, IPSGNDbContext dbContext)
+        public TentativaService(IExternoTentativa externoTentativa, IPSGNDbContext dbContext) // o ASP.NET entrega as duas dependências aqui (injeção de dependência)
         {
-            _externoTentativa = externoTentativa;
-            _dbContext = dbContext;
-        }
+            _externoTentativa = externoTentativa; // guarda o acesso ao Moodle para usar nos métodos
+            _dbContext = dbContext; // guarda o acesso ao banco para usar nos métodos
+        } // fim do construtor
 
-        //REVISÃO: método novo (no arquivo original havia só "public" solto, que nem compilava). Segue o mesmo padrão do
-        //ModuloService e do UsuarioService: recebe o Curso já carregado e sincroniza tudo que pertence a ele.
-        public async Task<ResultadoTentativasDto> SincronizarTentativasDoCursoAsync(Curso curso)
+        // REVISÃO: devolve List<Tentativa> (entidade do domain) com as tentativas CRIADAS, igual o ModuloService devolve List<Modulo> e o UsuarioService devolve List<AlunoModulo>
+        public async Task<List<Tentativa>> SincronizarTentativasDoCursoAsync(Curso curso) // recebe o Curso já carregado, então não precisa buscá-lo de novo
         {
-            //REVISÃO: só entram os módulos que têm IdCmidMoodle. Sem o cmid do questionário final não há como perguntar as
-            //tentativas ao Moodle (o ModuloService preenche esse campo; fica 0 se o módulo não tem "Avaliação Final do Módulo").
-            var modulos = await _dbContext.Modulos
-                .Where(m => m.IdCurso == curso.IdCurso && m.IdCmidMoodle != 0)
-                .ToListAsync();
+            var modulos = await _dbContext.Modulos // começa a consulta na tabela de módulos
+                .Where(m => m.IdCurso == curso.IdCurso && m.IdCmidMoodle != 0) // só os módulos deste curso que têm o cmid do questionário final (0 = não tem, não dá para consultar o Moodle)
+                .ToListAsync(); // executa o SELECT e traz os módulos para a memória
 
-            var total = new ResultadoTentativasDto(0, 0, 0);
-            foreach (var modulo in modulos)
-                total += await SincronizarTentativasDoModuloAsync(modulo);
+            var tentativasCriadas = new List<Tentativa>(); // lista que vai juntar as tentativas novas de todos os módulos do curso
 
-            return total;
-        }
+            foreach (var modulo in modulos) // percorre os módulos um por um
+                tentativasCriadas.AddRange(await SincronizarTentativasDoModuloAsync(modulo)); // sincroniza o módulo e junta as tentativas que ele criou na lista do curso
 
-        private async Task<ResultadoTentativasDto> SincronizarTentativasDoModuloAsync(Modulo modulo)
+            return tentativasCriadas; // devolve ao SincronizacaoService as tentativas novas deste curso
+        } // fim do método do curso
+
+        private async Task<List<Tentativa>> SincronizarTentativasDoModuloAsync(Modulo modulo) // trabalho de um módulo só; é privado porque só este service usa
         {
-            //REVISÃO: o Moodle é consultado pelo cmid do questionário final do módulo. Não existe como filtrar por aluno.
-            var tentativasMoodle = await _externoTentativa.ObterTentativasDoQuestionarioAsync(modulo.IdCmidMoodle);
-            if (tentativasMoodle.Count == 0)
-                return new ResultadoTentativasDto(0, 0, 0); //ninguém fez a prova ainda: evita as consultas ao banco abaixo
+            var tentativasMoodle = await _externoTentativa.ObterTentativasDoQuestionarioAsync(modulo.IdCmidMoodle); // pergunta ao Moodle todas as tentativas do questionário final deste módulo (o Moodle não filtra por aluno)
 
-            //REVISÃO: a tentativa do Moodle só traz a matrícula do aluno ("username"). O caminho no nosso banco é
-            //matrícula -> Usuario -> Aluno -> AlunoModulo (do módulo). Carrego todos os AlunoModulo do módulo de uma vez
-            //e indexo por matrícula, em vez de fazer uma consulta ao banco por tentativa. O ToDictionary é seguro porque
-            //a matrícula é única (índice único em Usuario) e o aluno só tem uma inscrição por módulo (índice único em AlunoModulo).
-            var alunoModuloPorMatricula = (await _dbContext.AlunosModulos
-                    .Include(am => am.Aluno).ThenInclude(a => a.Usuario)
-                    .Where(am => am.IdModulo == modulo.IdModulo)
-                    .ToListAsync())
-                .ToDictionary(am => am.Aluno.Usuario.Matricula);
+            var tentativasCriadas = new List<Tentativa>(); // lista das tentativas novas deste módulo; é o que o método devolve
 
-            //REVISÃO: as tentativas deste módulo que já foram importadas, indexadas pelo id do Moodle (IdAttempt). Servem para
-            //não duplicar nada quando a sincronização roda de novo. O "IdAttempt != 0" ignora tentativas que não vieram do Moodle.
-            var tentativaPorIdAttempt = await _dbContext.Tentativas
-                .Where(t => t.AlunoModulo.IdModulo == modulo.IdModulo && t.IdAttempt != 0)
-                .ToDictionaryAsync(t => t.IdAttempt);
+            if (tentativasMoodle.Count == 0) // se ninguém fez a prova ainda
+                return tentativasCriadas; // devolve a lista vazia e evita as consultas ao banco abaixo
 
-            int adicionadas = 0, atualizadas = 0, ignoradas = 0;
+            var alunoModuloPorMatricula = (await _dbContext.AlunosModulos // começa na tabela de inscrições (aluno x módulo)
+                    .Include(am => am.Aluno).ThenInclude(a => a.Usuario) // traz junto o Aluno e o Usuario dele, porque a matrícula está no Usuario
+                    .Where(am => am.IdModulo == modulo.IdModulo) // só as inscrições deste módulo
+                    .ToListAsync()) // executa uma única consulta e traz tudo para a memória
+                .ToDictionary(am => am.Aluno.Usuario.Matricula); // monta um dicionário com a matrícula como chave, para achar o AlunoModulo sem ir ao banco a cada tentativa
 
-            foreach (var tentativaMoodle in tentativasMoodle)
+            var tentativaPorIdAttempt = await _dbContext.Tentativas // começa na tabela de tentativas
+                .Where(t => t.AlunoModulo.IdModulo == modulo.IdModulo && t.IdAttempt != 0) // só as deste módulo que vieram do Moodle (IdAttempt 0 = não veio de lá)
+                .ToDictionaryAsync(t => t.IdAttempt); // dicionário com o id da tentativa no Moodle como chave, para saber o que já foi importado
+
+            foreach (var tentativaMoodle in tentativasMoodle) // percorre cada tentativa que o Moodle devolveu
             {
-                //REVISÃO: UPSERT, e não só insert. Uma tentativa pode ser importada em andamento (sem nota nem data final)
-                //e terminar depois; o professor também pode recorrigir a nota no Moodle. Se só inserisse, o PSGN guardaria
-                //para sempre a primeira versão. Só os campos que vêm do Moodle são atualizados (nota e datas do attempt);
-                //DataInicioTentativa, DataFimTentativa e Prazo não são tocados, para não sobrescrever o que o PSGN controla.
-                if (tentativaPorIdAttempt.TryGetValue(tentativaMoodle.IdAttempt, out var existente))
+                if (tentativaPorIdAttempt.TryGetValue(tentativaMoodle.IdAttempt, out var existente)) // se esta tentativa já está no banco, "existente" recebe a entidade
                 {
-                    if (existente.Nota != tentativaMoodle.Nota
-                        || existente.DataInicioAttempt != tentativaMoodle.DataInicio
-                        || existente.DataFimAttempt != tentativaMoodle.DataFinal)
+                    if (existente.Nota != tentativaMoodle.Nota // a nota mudou no Moodle?
+                        || existente.DataInicioAttempt != tentativaMoodle.DataInicio // ou a data de início mudou?
+                        || existente.DataFimAttempt != tentativaMoodle.DataFinal) // ou a data de fim mudou (a prova terminou depois de importada)?
                     {
-                        existente.Nota = tentativaMoodle.Nota;
-                        existente.DataInicioAttempt = tentativaMoodle.DataInicio;
-                        existente.DataFimAttempt = tentativaMoodle.DataFinal;
-                        atualizadas++;
-                    }
-                    continue;
-                }
+                        existente.Nota = tentativaMoodle.Nota; // copia a nota nova (o EF percebe a mudança sozinho e gera o UPDATE no SaveChanges)
+                        existente.DataInicioAttempt = tentativaMoodle.DataInicio; // copia a data de início do Moodle
+                        existente.DataFimAttempt = tentativaMoodle.DataFinal; // copia a data de fim do Moodle
+                    } // fim da atualização; Prazo, DataInicioTentativa e DataFimTentativa não são tocados porque quem controla é o PSGN
+                    continue; // já tratou esta tentativa, vai para a próxima
+                } // fim do caso "já existe"
 
-                //REVISÃO: tentativa de alguém que não é aluno deste módulo no PSGN (ex.: um professor testando a prova, ou um
-                //aluno que saiu da turma) não tem AlunoModulo para se ligar, então é ignorada. Em vez de pular em silêncio, ela
-                //é contada em "ignoradas" e aparece no resumo da tela. Também ignora tentativa sem data de início, porque o
-                //construtor de Tentativa não aceita data padrão.
-                if (tentativaMoodle.MatriculaAluno is null
-                    || tentativaMoodle.DataInicio is null
-                    || !alunoModuloPorMatricula.TryGetValue(tentativaMoodle.MatriculaAluno, out var alunoModulo))
-                {
-                    ignoradas++;
-                    continue;
-                }
+                if (tentativaMoodle.MatriculaAluno is null // a tentativa veio sem matrícula?
+                    || tentativaMoodle.DataInicio is null // ou sem data de início (o construtor de Tentativa exige uma)?
+                    || !alunoModuloPorMatricula.TryGetValue(tentativaMoodle.MatriculaAluno, out var alunoModulo)) // ou a matrícula não está inscrita neste módulo no PSGN? (quando acha, "alunoModulo" já recebe o vínculo)
+                    continue; // não há a quem ligar a tentativa, então pula (não cria nada)
 
-                //REVISÃO: usa o construtor do domínio (ele valida a data), que EXIGE DataInicioTentativa e Prazo. O Moodle não
-                //conhece nenhum dos dois, então assumi: DataInicioTentativa = início do attempt e Prazo = TimeSpan.Zero (sem
-                //prazo definido). Se Prazo/DataInicioTentativa forem vir de outra regra (ex.: NSG), é só trocar aqui.
-                var nova = new Tentativa(alunoModulo, tentativaMoodle.DataInicio.Value, TimeSpan.Zero)
-                {
-                    IdAttempt = tentativaMoodle.IdAttempt,
-                    DataInicioAttempt = tentativaMoodle.DataInicio,
-                    DataFimAttempt = tentativaMoodle.DataFinal,
-                    Nota = tentativaMoodle.Nota
-                };
-                _dbContext.Tentativas.Add(nova);
-                adicionadas++;
-            }
+                var nova = new Tentativa(alunoModulo, tentativaMoodle.DataInicio.Value, TimeSpan.Zero) // usa o construtor do domain; DataInicioTentativa = início do attempt e Prazo = zero (o Moodle não informa nenhum dos dois)
+                { // inicializador de objeto: preenche as propriedades que vêm do Moodle
+                    IdAttempt = tentativaMoodle.IdAttempt, // guarda o id do Moodle, que é o que impede duplicar na próxima sincronização
+                    DataInicioAttempt = tentativaMoodle.DataInicio, // início real da tentativa no Moodle
+                    DataFimAttempt = tentativaMoodle.DataFinal, // fim real da tentativa (null se ainda estiver em andamento)
+                    Nota = tentativaMoodle.Nota // nota da tentativa (null se ainda não foi corrigida)
+                }; // fim do inicializador
+                _dbContext.Tentativas.Add(nova); // marca a entidade para ser inserida no próximo SaveChanges
+                tentativasCriadas.Add(nova); // guarda na lista de retorno para o chamador saber o que foi criado
+            } // fim do foreach das tentativas do Moodle
 
-            //REVISÃO: um SaveChanges por módulo, no mesmo estilo do UsuarioService: se o Moodle falhar no módulo seguinte,
-            //o que já foi importado fica salvo e a próxima sincronização continua de onde parou.
-            await _dbContext.SaveChangesAsync();
-            return new ResultadoTentativasDto(adicionadas, atualizadas, ignoradas);
-        }
-    }
-
-    //REVISÃO: resumo da sincronização de tentativas, somado módulo a módulo (operador +) e depois curso a curso
-    public record ResultadoTentativasDto(int Adicionadas, int Atualizadas, int Ignoradas)
-    {
-        public static ResultadoTentativasDto operator +(ResultadoTentativasDto a, ResultadoTentativasDto b)
-            => new(a.Adicionadas + b.Adicionadas, a.Atualizadas + b.Atualizadas, a.Ignoradas + b.Ignoradas);
-    }
-}
+            await _dbContext.SaveChangesAsync(); // grava de uma vez os INSERTs das novas e os UPDATEs das existentes alteradas, um save por módulo
+            return tentativasCriadas; // devolve as tentativas novas deste módulo
+        } // fim do método do módulo
+    } // fim da classe
+} // fim do namespace
