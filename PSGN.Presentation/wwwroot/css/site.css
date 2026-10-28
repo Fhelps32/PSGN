@@ -1,22 +1,42 @@
-html {
-  font-size: 14px;
+/* ============================================================
+   REVISÃO: CSS trocado pelo do PSG. O visual agora é Tailwind (Play CDN);
+   aqui fica só a LÓGICA da sidebar retrátil, que depende de largura e
+   margem dinâmicas (difícil de fazer só com utilitários, por causa do
+   elemento irmão #main). O CSS antigo era do Bootstrap, que saiu do layout.
+   ============================================================ */
+
+/* Largura da sidebar numa variável CSS; ao recolher, só o valor muda */
+:root {
+    --sidebar-w: 250px; /* largura expandida */
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+html.sidebar-collapsed {
+    --sidebar-w: 76px; /* largura recolhida (só os ícones) */
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+/* Sidebar e conteúdo usam a mesma variável, com transição suave */
+#sidebar {
+    width: var(--sidebar-w); /* a sidebar tem a largura da variável */
+    transition: width .2s ease; /* anima a mudança de largura */
 }
 
-html {
-  position: relative;
-  min-height: 100%;
+#main {
+    margin-left: var(--sidebar-w); /* o conteúdo começa onde a sidebar termina */
+    transition: margin-left .2s ease; /* anima junto com a sidebar */
 }
 
-body {
-  margin-bottom: 60px;
+/* Recolhida: esconde os textos e centraliza os ícones */
+html.sidebar-collapsed .sidebar-label {
+    display: none; /* some com o texto dos links e do logo */
+}
+
+html.sidebar-collapsed #sidebar .nav-link {
+    justify-content: center; /* ícone no centro */
+    padding-left: 0; /* tira o espaçamento lateral para caber em 76px */
+    padding-right: 0; /* idem */
+}
+
+/* Mantém o botão de menu centralizado no cabeçalho quando recolhida */
+html.sidebar-collapsed #sidebar > div:first-child {
+    justify-content: center; /* centraliza o conteúdo do cabeçalho */
 }

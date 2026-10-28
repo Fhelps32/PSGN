@@ -1,0 +1,54 @@
+@* REVISÃO: sidebar nova, copiada do PSG. Só ficaram os itens que existem no PSGN (Dashboard e Cursos), para nenhum link dar 404 *@
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString(); // controller da página atual, para destacar o item ativo
+
+    var navItems = new[] // itens do menu num array, para não repetir o HTML de cada link
+    {
+        new { Ctrl = "Dashboard", Icon = "bi-grid", Label = "Dashboard" }, // tela de dashboard
+        new { Ctrl = "Home",      Icon = "bi-book", Label = "Cursos" } // tela inicial, que lista os cursos e tem o botão de sincronizar
+    }; // fim dos itens
+
+    const string navBase = "nav-link flex items-center gap-4 px-4 py-3 rounded-xl transition-colors"; // classes de todo link
+    const string navInactive = "text-slate-600 hover:bg-brand-light hover:text-brand"; // classes do link que NÃO é a página atual
+    const string navActive = "bg-brand-light text-brand font-semibold"; // classes do link da página atual
+}
+
+@* aside fixo; a LARGURA é controlada no site.css conforme o estado recolhido/expandido *@
+<aside id="sidebar" class="fixed left-0 top-0 h-screen bg-white border-r border-slate-200 flex flex-col z-20 overflow-hidden">
+
+    @* Cabeçalho: logo + botão de recolher/expandir *@
+    <div class="h-20 flex items-center justify-between px-5 border-b border-slate-100 shrink-0">
+        <div class="flex items-center gap-3 overflow-hidden"> @* logo *@
+            <i class="bi bi-mortarboard-fill text-brand text-3xl shrink-0"></i> @* ícone de capelo *@
+            <span class="sidebar-label text-2xl font-bold text-brand whitespace-nowrap">PSGN</span> @* nome; some quando a sidebar recolhe *@
+        </div>
+        <button id="toggleSidebar" type="button"
+                class="shrink-0 p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+                title="Recolher menu"> @* botão que recolhe/expande *@
+            <i class="bi bi-list text-xl"></i> @* ícone de "hambúrguer" *@
+        </button>
+    </div>
+
+    @* Navegação *@
+    <nav class="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden">
+        @foreach (var item in navItems) // um link por item do array
+        {
+            var isActive = controller == item.Ctrl; // é a página atual?
+            <a asp-controller="@item.Ctrl" asp-action="Index"
+               title="@item.Label"
+               class="@navBase @(isActive ? navActive : navInactive)"> @* aplica as classes de ativo ou inativo *@
+                <i class="bi @item.Icon text-xl shrink-0"></i> @* ícone do item *@
+                <span class="sidebar-label whitespace-nowrap">@item.Label</span> @* texto; some quando a sidebar recolhe *@
+            </a>
+        }
+    </nav>
+
+</aside>
+
+<script>
+    // Recolher/expandir: o estado fica na classe html.sidebar-collapsed e é salvo no localStorage
+    document.getElementById("toggleSidebar").addEventListener("click", function () { // ao clicar no botão
+        var collapsed = document.documentElement.classList.toggle("sidebar-collapsed"); // liga/desliga a classe e devolve o novo estado
+        localStorage.setItem("sidebarCollapsed", collapsed); // salva para a próxima página abrir igual
+    }); // fim do evento
+</script>

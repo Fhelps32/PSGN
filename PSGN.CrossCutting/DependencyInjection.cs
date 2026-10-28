@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PSGN.Application.Data;
 using PSGN.Application.Interfaces.ExternoServices;
+using PSGN.Application.Servicos.Alunos; //REVISÃO (dashboard): namespace do AlunoService
 using PSGN.Application.Servicos.Cursos;
 using PSGN.Application.Servicos.Modulos;
 using PSGN.Application.Servicos.Sincronizacao;
@@ -32,6 +33,7 @@ namespace PSGN.CrossCutting
             services.AddScoped<UsuarioService>();
             services.AddScoped<TentativaService>(); //REVISÃO: faltava registrar; sem isso o SincronizacaoService não conseguiria ser criado
             services.AddScoped<SincronizacaoService>(); //REVISÃO: novo serviço que orquestra cursos -> módulos -> alunos -> tentativas
+            services.AddScoped<AlunoService>(); //REVISÃO (dashboard): service de leitura de alunos/inscrições usado pelo DashboardController
             return services;
         }
         #endregion

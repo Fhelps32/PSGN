@@ -70,5 +70,15 @@ namespace PSGN.Application.Servicos.Cursos
                 .OrderBy(c => c.Nome)
                 .ToListAsync();
         }
+
+        // REVISÃO: método novo, usado pelo Dashboard (filtros de curso e gráfico de pizza "alunos por curso")
+        public async Task<List<Curso>> ListarCursosComAlunosAsync() // devolve a entidade Curso, seguindo a arquitetura dos outros métodos
+        {
+            return await _dbContext.Cursos // começa na tabela de cursos
+                .Include(c => c.Alunos) // traz os alunos de cada curso, para a tela contar com curso.Alunos.Count
+                .OrderBy(c => c.Nome) // ordena pelo nome, que é a ordem dos selects e da legenda da pizza
+                .AsNoTracking() // só leitura: o EF não precisa acompanhar mudanças
+                .ToListAsync(); // executa a consulta e devolve a lista
+        } // fim do ListarCursosComAlunosAsync
     }
 }

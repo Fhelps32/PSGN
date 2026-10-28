@@ -1,41 +1,68 @@
 ﻿@model PSGN.Presentation.ViewModels.HomeViewModel
+@* REVISÃO: página refeita com Tailwind (o Bootstrap saiu do layout). O conteúdo é o mesmo: botão de sincronizar + lista de cursos e módulos *@
 @{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Cursos"; // título da aba
 }
 
-<div class="text-center">
-    @* REVISÃO: a página agora lista TODOS os cursos do banco (antes só os criados naquela execução) *@
-    <h1 class="display-4">Cursos</h1>
+@* ===== Cabeçalho da página ===== *@
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div>
+        <h1 class="text-3xl font-bold text-slate-800">Cursos</h1> @* título *@
+        <p class="text-slate-500 text-sm mt-1">Cursos e módulos sincronizados com o Moodle e o NSG</p> @* subtítulo *@
+    </div>
 
-    @* REVISÃO: botão que dispara a sincronização via POST. O tag helper asp-action já coloca o token antifalsificação no form. *@
-    <form asp-action="Sincronizar" method="post" class="mb-3">
-        <button type="submit" class="btn btn-primary">Sincronizar com Moodle e NSG</button>
+    @* Botão de sincronizar: POST com token antifalsificação (o tag helper asp-action coloca o token sozinho) *@
+    <form asp-action="Sincronizar" method="post">
+        <button type="submit"
+                class="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-colors">
+            <i class="bi bi-arrow-repeat"></i> @* ícone de sincronizar *@
+            Sincronizar com Moodle e NSG
+        </button>
     </form>
-
-    @if (Model.MensagemSincronizacao is not null)
-    {
-        <div class="alert alert-success">@Model.MensagemSincronizacao</div>
-    }
 </div>
 
-@if (Model.Cursos.Count == 0)
+@* Aviso deixado pela action Sincronizar (TempData) *@
+@if (Model.MensagemSincronizacao is not null)
 {
-    <p class="text-center">Nenhum curso cadastrado ainda. Clique em "Sincronizar".</p>
+    <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <i class="bi bi-check-circle mr-1"></i>@Model.MensagemSincronizacao
+    </div>
 }
 
-<ul>
-    @foreach (var curso in Model.Cursos)
+@* Nenhum curso no banco ainda *@
+@if (Model.Cursos.Count == 0)
+{
+    <div class="text-center text-slate-400 py-16">
+        <i class="bi bi-inbox text-4xl block mb-2"></i>
+        <span class="text-sm">Nenhum curso cadastrado ainda. Clique em "Sincronizar".</span>
+    </div>
+}
+
+@* Um card por curso, em grade responsiva *@
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    @foreach (var curso in Model.Cursos) // percorre os cursos do ViewModel
     {
-        @* REVISÃO: mostra a quantidade de módulos, o que deixa fácil ver se algum curso ficou sem módulo *@
-        <li>Nome: @curso.Nome, Coordenador: @curso.Coordenador (@curso.Modulos.Count módulos)
-            <ul>
-                @foreach (var modulo in curso.Modulos)
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            @* Cabeçalho do card: nome, coordenador e quantidade de módulos *@
+            <div class="px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-3">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800">@curso.Nome</h2> @* nome do curso *@
+                    <p class="text-xs text-slate-500 mt-0.5"><i class="bi bi-person mr-1"></i>@curso.Coordenador</p> @* coordenador *@
+                </div>
+                <span class="shrink-0 bg-brand-light text-brand px-2.5 py-1 rounded-lg text-xs font-semibold">
+                    @curso.Modulos.Count módulos @* deixa fácil ver curso que ficou sem módulo *@
+                </span>
+            </div>
+            @* Lista de módulos do curso *@
+            <ul class="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+                @foreach (var modulo in curso.Modulos) // percorre os módulos do curso
                 {
-                    <li>
-                        Nome do Módulo: @modulo.Nome, Id no Moodle: @modulo.IdMoodle
+                    <li class="px-6 py-2.5 flex items-center justify-between gap-3 text-sm">
+                        <span class="text-slate-700">@modulo.Nome</span> @* nome do módulo *@
+                        <span class="shrink-0 text-xs text-slate-400">Moodle #@modulo.IdMoodle</span> @* id do módulo no Moodle *@
                     </li>
                 }
             </ul>
-        </li>
+        </div>
     }
-</ul>
+</div>

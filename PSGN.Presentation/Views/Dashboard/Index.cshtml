@@ -1,0 +1,347 @@
+@model DashBoardViewModel
+@* REVISÃO: view nova, feita a partir do Dashboard do PSG (mesmo layout, Tailwind, Chart.js e fetch/AJAX). Adaptações para o PSGN:
+   - os links para telas que não existem no PSGN (Curso, Inscrição, Relatório) apontam para a tela de Cursos (Home);
+   - o botão "Gerar Relatório" virou "Sincronizar com Moodle e NSG", que já existe;
+   - a seção SituacaoInscricoes, que estava no ViewModel mas não aparecia no PSG, virou uma tabela;
+   - a data de cancelamento pode vir vazia, porque o domain ainda não guarda essa data *@
+@{
+    ViewData["Title"] = "Dashboard"; // título da aba
+}
+
+@* ===== Cabeçalho da página ===== *@
+<div class="mb-6">
+    <h1 class="text-3xl font-bold text-slate-800">Dashboard</h1> @* título *@
+    <p class="text-slate-500 text-sm mt-1">Visão geral de alunos, cursos e desempenho</p> @* subtítulo *@
+</div>
+
+@* Grade de 2 colunas: conteúdo à esquerda, coluna fixa de 320px à direita (em telas pequenas vira 1 coluna) *@
+<div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
+
+    @* ===================== COLUNA ESQUERDA ===================== *@
+    <div class="flex flex-col gap-6">
+
+        @* ----- Card: totais + destaques de curso ----- *@
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+
+            @* Linha: total de alunos *@
+            <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total de Alunos</p>
+                    <p class="text-3xl font-bold text-slate-800 mt-1">@Model.TotalAlunos</p> @* pessoas distintas (uma pessoa em 2 cursos conta 1) *@
+                </div>
+                <a asp-controller="Home" asp-action="Index"
+                   class="inline-flex items-center gap-1.5 bg-brand-light text-brand px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-brand hover:text-white transition-colors whitespace-nowrap">
+                    <i class="bi bi-mortarboard"></i>
+                    Ver Cursos
+                </a>
+            </div>
+
+            @* Linha: total de cursos *@
+            <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total de Cursos</p>
+                    <p class="text-3xl font-bold text-slate-800 mt-1">@Model.TotalCursos</p>
+                </div>
+                <a asp-controller="Home" asp-action="Index"
+                   class="inline-flex items-center gap-1.5 bg-brand-light text-brand px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-brand hover:text-white transition-colors whitespace-nowrap">
+                    <i class="bi bi-mortarboard"></i>
+                    Ver Cursos
+                </a>
+            </div>
+
+            @* Curso com maior cancelamento / maior reprovação, lado a lado *@
+            <div class="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+                <div class="px-6 py-5">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                        <i class="bi bi-x-octagon text-red-500 mr-1"></i>
+                        Curso com maior taxa de cancelamento
+                    </p>
+                    @if (!string.IsNullOrEmpty(Model.CursoMaiorCancelamento?.Curso)) // só mostra se algum curso tiver cancelamento
+                    {
+                        <p class="text-lg font-bold text-slate-800">@Model.CursoMaiorCancelamento.Curso</p>
+                        <p class="text-sm text-red-600 font-semibold mt-1">@(Model.CursoMaiorCancelamento.Taxa)% de cancelamento</p>
+                        <p class="text-xs text-slate-400 mt-1">
+                            @(Model.CursoMaiorCancelamento.QuantidadeAlunosImportancia) de @(Model.CursoMaiorCancelamento.QuantidadeAlunosTotal) inscrições
+                        </p>
+                    }
+                    else
+                    {
+                        <p class="text-sm text-slate-400">Sem dados disponíveis</p>
+                    }
+                </div>
+                <div class="px-6 py-5">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                        <i class="bi bi-emoji-frown text-amber-500 mr-1"></i>
+                        Curso com maior taxa de reprovação
+                    </p>
+                    @if (!string.IsNullOrEmpty(Model.CursoMaiorReprovacao?.Curso)) // só mostra se algum curso tiver reprovação
+                    {
+                        <p class="text-lg font-bold text-slate-800">@Model.CursoMaiorReprovacao.Curso</p>
+                        <p class="text-sm text-amber-600 font-semibold mt-1">@(Model.CursoMaiorReprovacao.Taxa)% de reprovação</p>
+                        <p class="text-xs text-slate-400 mt-1">
+                            @(Model.CursoMaiorReprovacao.QuantidadeAlunosImportancia) de @(Model.CursoMaiorReprovacao.QuantidadeAlunosTotal) inscrições
+                        </p>
+                    }
+                    else
+                    {
+                        <p class="text-sm text-slate-400">Sem dados disponíveis</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* ----- Card: gráfico em linha (alunos cadastrados por mês) ----- *@
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800">Histórico de Alunos</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Alunos cadastrados no PSGN a cada mês</p>
+                </div>
+                @* REVISÃO: flex-wrap + max-w no select de curso, para o nome longo do curso não empurrar o card para fora da tela *@
+                <div class="flex flex-wrap gap-2 max-w-full">
+                    @* Sem opção vazia: "tempo" é int no controller e um value="" daria erro 400 *@
+                    <select id="selectTempoLinha"
+                            asp-items="Model.LineGraphSection.Tempo"
+                            class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand">
+                    </select>
+                    <select id="selectCursoLinha"
+                            asp-items="Model.LineGraphSection.Cursos"
+                            class="max-w-full sm:max-w-xs rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand">
+                        <option value="">Todos os cursos</option> @* value vazio = cursoId null no controller *@
+                    </select>
+                </div>
+            </div>
+            <div class="h-72"> @* altura fixa: o Chart.js preenche o container (maintainAspectRatio: false) *@
+                <canvas id="lineGraphAlunos"></canvas>
+            </div>
+        </div>
+
+        @* ----- Card: situação das inscrições por curso ----- *@
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100">
+                <h2 class="text-base font-bold text-slate-800">Situação das Inscrições</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Por curso, contando cada inscrição de aluno em módulo</p>
+            </div>
+            @if (Model.SituacaoInscricoes.Any()) // há inscrições para mostrar?
+            {
+                <div class="overflow-x-auto"> @* rolagem horizontal em telas estreitas *@
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                            <tr>
+                                <th class="text-left font-semibold px-6 py-3">Curso</th>
+                                <th class="text-right font-semibold px-3 py-3">Aprovados</th>
+                                <th class="text-right font-semibold px-3 py-3">Em andamento</th>
+                                <th class="text-right font-semibold px-3 py-3">Reprovados</th>
+                                <th class="text-right font-semibold px-3 py-3">Cancelados</th>
+                                <th class="text-right font-semibold px-6 py-3">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach (var linha in Model.SituacaoInscricoes) // uma linha por curso
+                            {
+                                <tr class="hover:bg-slate-50">
+                                    <td class="px-6 py-3 font-medium text-slate-800">@linha.Curso</td>
+                                    <td class="px-3 py-3 text-right tabular-nums text-emerald-600">@linha.Aprovados</td>
+                                    <td class="px-3 py-3 text-right tabular-nums text-slate-600">@linha.EmAndamento</td>
+                                    <td class="px-3 py-3 text-right tabular-nums text-amber-600">@linha.Reprovados</td>
+                                    <td class="px-3 py-3 text-right tabular-nums text-red-600">@linha.Cancelados</td>
+                                    <td class="px-6 py-3 text-right tabular-nums font-semibold text-slate-800">@linha.Total</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center text-slate-400 py-8">
+                    <i class="bi bi-inbox text-3xl block mb-2"></i>
+                    <span class="text-xs">Nenhuma inscrição sincronizada ainda.</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* ===================== COLUNA DIREITA ===================== *@
+    <div class="flex flex-col gap-6">
+
+        <a asp-controller="Home" asp-action="Index"
+           class="inline-flex items-center justify-center gap-2 bg-white border border-slate-200 hover:border-brand hover:text-brand text-slate-700 px-4 py-3 rounded-xl text-sm font-semibold shadow-sm transition-colors">
+            <i class="bi bi-book"></i>
+            Ir para Cursos
+        </a>
+
+        @* Sincronizar: POST para Home/Sincronizar (o tag helper coloca o token antifalsificação); no fim volta para a tela de Cursos *@
+        <form asp-controller="Home" asp-action="Sincronizar" method="post" class="flex">
+            <button type="submit"
+                    class="flex-1 inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-white px-4 py-3 rounded-xl text-sm font-semibold shadow-sm transition-colors">
+                <i class="bi bi-arrow-repeat"></i>
+                Sincronizar com Moodle e NSG
+            </button>
+        </form>
+
+        @* ----- Card: gráfico de pizza ----- *@
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+            @* REVISÃO: no PSG o título e o select ficavam lado a lado. Com os nomes longos dos cursos do PSGN o select ficava com
+               ~460px e estourava o card de 320px (rolagem horizontal na página); agora o select fica embaixo, com a largura do card *@
+            <div class="flex flex-col gap-2 mb-3">
+                <h2 class="text-sm font-bold text-slate-800">Alunos por Curso</h2>
+                <select id="selectCursoPizza"
+                        asp-items="Model.SectorGraphSection.Cursos"
+                        class="w-full rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand">
+                    <option value="">Todos</option> @* vazio = uma fatia por curso; com curso = uma fatia por módulo *@
+                </select>
+            </div>
+            <div class="h-48">
+                <canvas id="pieGraphCursos"></canvas>
+            </div>
+            @* REVISÃO: legenda em HTML (preenchida pelo JavaScript). A legenda do Chart.js não quebra linha: com os nomes longos
+               dos cursos do PSGN ela cortava os textos e ocupava metade do canvas, deixando a pizza minúscula *@
+            <ul id="pieLegenda" class="mt-4 space-y-1.5 text-xs text-slate-600"></ul>
+        </div>
+
+        @* ----- Card: alunos cancelados ----- *@
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+            <h2 class="text-sm font-bold text-slate-800 mb-3">Alunos Cancelados</h2>
+            <div class="flex flex-col divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                @if (Model.AlunosCancelados.Any()) // há cancelados?
+                {
+                    foreach (var aluno in Model.AlunosCancelados) // um item por inscrição cancelada
+                    {
+                        <div class="py-3 first:pt-0 last:pb-0">
+                            <p class="text-sm font-semibold text-slate-800">@aluno.Nome</p>
+                            <p class="text-xs text-slate-500 mt-0.5">@aluno.Curso &bull; @aluno.Modulo</p>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                                @(aluno.DataCancelamento is null ? "Data não registrada" : $"Cancelado em {aluno.DataCancelamento:dd/MM/yyyy}")
+                            </p>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center text-slate-400 py-8">
+                        <i class="bi bi-inbox text-3xl block mb-2"></i>
+                        <span class="text-xs">Nenhum cancelamento.</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @* Chart.js 4.4.4 (mesmo arquivo do PSG, copiado para wwwroot/lib/chart.js/dist) *@
+    <script src="~/lib/chart.js/dist/chart.umd.js" asp-append-version="true"></script>
+    <script>
+        // ===== Dados vindos do ViewModel para a primeira renderização dos gráficos =====
+        // REVISÃO: no PSG os arrays eram montados com um foreach do Razor. Só que o Razor codifica para HTML tudo o que escreve, e
+        // dentro de <script> o navegador NÃO decodifica: "Gestão" virava "Gest&#xE3;o" na legenda. O Json.Serialize gera um
+        // array JavaScript válido, com os acentos e aspas tratados.
+        const lineLabels = @Json.Serialize(Model.LineGraphSection.ValueLineGraph.Select(p => p.Data.ToString("MM/yyyy"))); // rótulos do eixo X (meses)
+        const lineData = @Json.Serialize(Model.LineGraphSection.ValueLineGraph.Select(p => p.QuantidadeAlunos)); // valores do eixo Y (alunos por mês)
+
+        const pieLabels = @Json.Serialize(Model.SectorGraphSection.ValueSectorGraph.Select(f => string.IsNullOrEmpty(f.Modulo) ? f.Curso : $"{f.Curso} - {f.Modulo}")); // legenda das fatias ("Curso" ou "Curso - Módulo")
+        const pieData = @Json.Serialize(Model.SectorGraphSection.ValueSectorGraph.Select(f => f.QuantidadeAlunos)); // tamanho de cada fatia
+
+        // REVISÃO: no PSG a legenda era "Curso - Módulo". No PSGN os nomes são longos (ex.: "Pós-Graduação em ... - EAD - Didática ... - POS - GSA - EAD")
+        // e a legenda espremia a pizza; como o curso já aparece no select, a fatia de módulo mostra só o nome do módulo
+        const rotuloFatia = d => d.modulo ?? d.curso; // monta a legenda a partir do JSON do AJAX (módulo só existe com curso escolhido)
+
+        // ===== Gráfico em linha: alunos cadastrados por mês =====
+        new Chart(document.getElementById('lineGraphAlunos'), { // desenha no <canvas id="lineGraphAlunos">
+            type: 'line', // gráfico de linha
+            data: { // dados
+                labels: lineLabels, // eixo X
+                datasets: [{ // uma única série
+                    label: 'Alunos', // nome da série (aparece no tooltip)
+                    data: lineData, // eixo Y
+                    borderColor: '#c96442', // cor da linha (a mesma do PSG)
+                    backgroundColor: 'rgba(201, 100, 66, 0.12)', // cor do preenchimento abaixo da linha
+                    tension: 0.3, // suaviza a curva
+                    fill: true, // preenche abaixo da linha
+                    pointRadius: 3 // tamanho dos pontos
+                }] // fim da série
+            }, // fim dos dados
+            options: { // opções
+                responsive: true, // acompanha o tamanho do container
+                maintainAspectRatio: false, // usa a altura do container (h-72) em vez de uma proporção fixa
+                plugins: { legend: { display: false } }, // esconde a legenda (só há uma série)
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } // eixo Y começa no 0 e só mostra inteiros
+            } // fim das opções
+        }); // fim do gráfico em linha
+
+        // ===== Gráfico de pizza: alunos por curso (ou por módulo) =====
+        const coresPizza = ['#c96442', '#f2b774', '#7c9d96', '#5b7f9e', '#a68a64', '#94a3b8']; // cores das fatias (as mesmas do PSG); ficam numa constante porque a legenda HTML usa as mesmas
+        new Chart(document.getElementById('pieGraphCursos'), { // desenha no <canvas id="pieGraphCursos">
+            type: 'pie', // gráfico de pizza
+            data: { // dados
+                labels: pieLabels, // nome de cada fatia (aparece no tooltip e na legenda HTML)
+                datasets: [{ // uma única série
+                    data: pieData, // tamanho das fatias
+                    backgroundColor: coresPizza // o Chart.js repete as cores em ciclo quando há mais fatias que cores
+                }] // fim da série
+            }, // fim dos dados
+            options: { // opções
+                responsive: true, // acompanha o tamanho do container
+                maintainAspectRatio: false, // usa a altura do container (h-48)
+                plugins: { legend: { display: false } } // REVISÃO: legenda do Chart.js desligada; quem mostra é a <ul id="pieLegenda">
+            } // fim das opções
+        }); // fim do gráfico de pizza
+
+        // REVISÃO: monta a legenda HTML a partir do que está no gráfico (chamada ao abrir a página e depois de cada AJAX)
+        function desenharLegendaPizza() {
+            const chart = Chart.getChart('pieGraphCursos'); // gráfico já desenhado
+            const lista = document.getElementById('pieLegenda'); // <ul> da legenda
+            lista.replaceChildren(); // apaga a legenda anterior
+            chart.data.labels.forEach((rotulo, i) => { // um item por fatia
+                const item = document.createElement('li'); // linha da legenda
+                item.className = 'flex items-start gap-2'; // quadradinho, texto e número lado a lado
+                const cor = document.createElement('span'); // quadradinho com a cor da fatia
+                cor.className = 'mt-0.5 h-2.5 w-2.5 shrink-0 rounded-sm'; // tamanho e alinhamento com a 1ª linha do texto
+                cor.style.backgroundColor = coresPizza[i % coresPizza.length]; // mesma regra de ciclo de cores do Chart.js
+                const texto = document.createElement('span'); // nome do curso/módulo
+                texto.className = 'flex-1 leading-snug'; // ocupa o espaço que sobra e quebra linha se for longo
+                texto.textContent = rotulo; // textContent (e não innerHTML) para o nome nunca ser interpretado como HTML
+                const valor = document.createElement('span'); // quantidade de alunos da fatia
+                valor.className = 'tabular-nums font-semibold text-slate-800'; // números alinhados e em destaque
+                valor.textContent = chart.data.datasets[0].data[i]; // valor da fatia
+                item.append(cor, texto, valor); // monta a linha
+                lista.append(item); // coloca a linha na legenda
+            }); // fim do forEach
+        } // fim do desenharLegendaPizza
+
+        desenharLegendaPizza(); // desenha a legenda da primeira renderização
+
+        // ===== AJAX do gráfico em linha =====
+        async function atualizarGraficoLinha() { // chamado quando o período ou o curso muda
+            const tempo = document.getElementById('selectTempoLinha').value; // quantidade de meses escolhida
+            const curso = document.getElementById('selectCursoLinha').value; // id do curso ("" = todos)
+
+            const resp = await fetch(`/Dashboard/GetLineGraphData?tempo=${tempo}&cursoId=${curso}`); // pede os pontos novos ao DashboardController
+            if (!resp.ok) return; // se deu erro no servidor, mantém o gráfico como está
+
+            const dados = await resp.json(); // formato: [{ totalAlunos: 10, dataRegistro: "2026-01-01T00:00:00" }, ...]
+            const chart = Chart.getChart('lineGraphAlunos'); // pega o gráfico já desenhado
+            chart.data.labels = dados.map(d => new Date(d.dataRegistro).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' })); // novos rótulos MM/yyyy
+            chart.data.datasets[0].data = dados.map(d => d.totalAlunos); // novos valores
+            chart.update(); // redesenha com animação
+        } // fim do atualizarGraficoLinha
+
+        document.getElementById('selectTempoLinha').addEventListener('change', atualizarGraficoLinha); // troca de período
+        document.getElementById('selectCursoLinha').addEventListener('change', atualizarGraficoLinha); // troca de curso
+
+        // ===== AJAX do gráfico de pizza =====
+        document.getElementById('selectCursoPizza').addEventListener('change', async () => { // quando o curso da pizza muda
+            const cursoId = document.getElementById('selectCursoPizza').value; // id do curso ("" = todos)
+            const resp = await fetch(`/Dashboard/GetPieGraphData?cursoId=${cursoId}`); // pede as fatias novas ao DashboardController
+            if (!resp.ok) return; // se deu erro no servidor, mantém o gráfico como está
+
+            const dados = await resp.json(); // formato: [{ curso: "...", modulo: "..." | null, quantidadeAlunos: 5 }, ...]
+            const chart = Chart.getChart('pieGraphCursos'); // pega o gráfico já desenhado
+            chart.data.labels = dados.map(rotuloFatia); // nova legenda
+            chart.data.datasets[0].data = dados.map(d => d.quantidadeAlunos); // novos tamanhos
+            chart.update(); // redesenha com animação
+            desenharLegendaPizza(); // REVISÃO: atualiza a legenda HTML com as fatias novas
+        }); // fim do evento da pizza
+    </script>
+}

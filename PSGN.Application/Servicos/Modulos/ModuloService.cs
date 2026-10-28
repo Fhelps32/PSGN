@@ -75,5 +75,17 @@ namespace PSGN.Application.Servicos.Modulos
             await _dbContext.SaveChangesAsync();
             return modulosAdicionados;
         }
+
+        // REVISÃO: método novo, usado pelo Dashboard quando o gráfico de pizza detalha um curso (uma fatia por módulo)
+        public async Task<List<Modulo>> ListarModulosDoCursoComAlunosAsync(int idCurso) // devolve a entidade Modulo, seguindo a arquitetura
+        {
+            return await _dbContext.Modulos // começa na tabela de módulos
+                .Include(m => m.Curso) // traz o curso, para a fatia mostrar "Curso - Módulo"
+                .Include(m => m.Alunos) // traz as inscrições (AlunoModulo), para a tela contar com modulo.Alunos.Count
+                .Where(m => m.IdCurso == idCurso) // só os módulos do curso escolhido no select
+                .OrderBy(m => m.Nome) // ordena pelo nome, que é a ordem da legenda
+                .AsNoTracking() // só leitura: o EF não precisa acompanhar mudanças
+                .ToListAsync(); // executa a consulta e devolve a lista
+        } // fim do ListarModulosDoCursoComAlunosAsync
     }
 }

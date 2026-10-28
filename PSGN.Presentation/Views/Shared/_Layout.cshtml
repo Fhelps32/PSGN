@@ -1,49 +1,56 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+@* REVISÃO: layout refeito igual ao do PSG: Tailwind (Play CDN) no lugar do Bootstrap, sidebar retrátil à esquerda e Bootstrap Icons *@
+<html lang="pt-BR">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - PSGN.Presentation</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/PSGN.Presentation.styles.css" asp-append-version="true" />
-</head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">PSGN.Presentation</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+    <meta charset="utf-8" /> @* codificação da página, para acentos aparecerem certos *@
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /> @* faz a página respeitar a largura do celular *@
+    <title>@ViewData["Title"] - PSGN</title> @* título da aba: cada view define o ViewData["Title"] *@
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - PSGN.Presentation - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+    @* Tailwind CSS via Play CDN: gera as classes utilitárias (bg-white, p-6, etc.) direto no navegador *@
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tema custom do Tailwind (igual ao PSG): cor "brand" e a fonte padrão do sistema
+        tailwind.config = { // objeto de configuração lido pelo script do Tailwind acima
+            theme: { // seção de tema
+                extend: { // "extend" acrescenta ao tema padrão em vez de substituir
+                    colors: { // cores novas
+                        brand: { // vira as classes bg-brand, text-brand, bg-brand-dark, bg-brand-light...
+                            DEFAULT: '#2563eb', // azul principal
+                            dark: '#1d4ed8', // azul do hover dos botões
+                            light: '#eff4ff' // fundo claro do item ativo da sidebar
+                        } // fim da cor brand
+                    }, // fim das cores
+                    fontFamily: { // fontes
+                        sans: ['"Segoe UI"', 'system-ui', 'sans-serif'] // fonte padrão (classe font-sans)
+                    } // fim das fontes
+                } // fim do extend
+            } // fim do tema
+        }; // fim da configuração
+    </script>
+
+    @* Bootstrap Icons via CDN: só os ícones (bi-*), o Bootstrap CSS saiu *@
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    @* CSS próprio: só a base e a lógica da sidebar retrátil; o resto é Tailwind *@
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    <script>
+        // Restaura o estado da sidebar (recolhida/expandida) ANTES de desenhar a página, para ela não "piscar" aberta
+        if (localStorage.getItem('sidebarCollapsed') === 'true') { // o estado é salvo pelo botão da sidebar
+            document.documentElement.classList.add('sidebar-collapsed'); // a classe no <html> é o que o site.css usa para recolher
+        } // fim do if
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased"> @* fundo cinza claro, texto escuro e fonte suavizada *@
+
+    <partial name="_Sidebar" /> @* sidebar fixa à esquerda (Views/Shared/_Sidebar.cshtml) *@
+
+    <main id="main" class="min-h-screen p-8"> @* conteúdo principal; a margem esquerda acompanha a largura da sidebar (site.css) *@
+        @RenderBody() @* aqui entra a view de cada página *@
+    </main>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script> @* jQuery, mantido para a validação de formulários (_ValidationScriptsPartial) *@
+    <script src="~/js/site.js" asp-append-version="true"></script> @* JavaScript geral do site *@
+    @await RenderSectionAsync("Scripts", required: false) @* scripts específicos de cada view (ex.: os gráficos do Dashboard) *@
 </body>
 </html>
