@@ -1,153 +1,207 @@
 ﻿@using System.Globalization
 @model AlunosViewModel
-@* REVISÃO: página de alunos criada (era um placeholder "oi"). Segue o padrão visual do PSG (cabeçalho, card de filtros, card de tabela com rolagem horizontal, estado vazio),
-   mas só usa o que existe no PSGN: nada de editar/excluir (aluno nasce da sincronização), nada de status/situação da inscrição *@
+@* REVISÃO: página de Alunos no padrão do redesign: cabeçalho com grupo, barra de filtros com chips dos filtros ativos, tabela com cabeçalho fixo e ordenação,
+   linha expansível com os módulos, paginação no servidor e, em telas estreitas, a tabela vira lista de cards (marcação única, ver .table-stack em components.css) *@
 @{
     ViewData["Title"] = "Alunos"; // título da aba e da página
+    ViewData["Section"] = "Acadêmico"; // grupo da sidebar (lido pela partial _PageHeader)
     ViewData["Subtitle"] = "Alunos sincronizados do Moodle e os módulos em que estão inscritos"; // subtítulo (lido pela partial _PageHeader)
 
     var ptBr = CultureInfo.GetCultureInfo("pt-BR"); // cultura para formatar a nota com vírgula (7,5), independente do idioma do servidor
     var filtrando = !string.IsNullOrWhiteSpace(Model.Nome) || Model.CursoId.HasValue || Model.ModuloId.HasValue; // algum filtro está ativo?
 
-    const string campo = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand disabled:bg-slate-50 disabled:text-slate-400"; // classes de todo campo do filtro (repetidas 3 vezes no PSG)
+    // Monta os valores de rota dos links de ordenação e dos chips: parte dos filtros ativos (sem a página, que volta para a 1) e troca só o que for pedido
+    Dictionary<string, string> Rota(string[]? remover = null, string? ordenarPor = null, bool decrescente = false)
+    {
+        var rota = new Dictionary<string, string>(Model.Paginacao.Rota); // cópia dos filtros e da ordenação ativos
+        foreach (var chave in remover ?? Array.Empty<string>()) rota.Remove(chave); // chip: tira o(s) filtro(s) do chip clicado
+        if (ordenarPor is not null) // cabeçalho clicado: define a nova ordenação
+        {
+            rota.Remove("OrdenarPor"); rota.Remove("Decrescente"); // limpa a ordenação anterior
+            if (ordenarPor != "nome") rota["OrdenarPor"] = ordenarPor; // "nome" é o padrão e não precisa ir na URL
+            if (decrescente) rota["Decrescente"] = "true"; // sentido Z-A
+        }
+        return rota; // dicionário pronto para asp-all-route-data
+    }
+
+    string AriaSort(string coluna) => Model.OrdenarPor == coluna ? (Model.Decrescente ? "descending" : "ascending") : "none"; // estado de ordenação da coluna para o leitor de tela
+    bool Ordenada(string coluna) => Model.OrdenarPor == coluna; // a coluna é a ordenada?
+    bool ProximoDecrescente(string coluna) => Ordenada(coluna) && !Model.Decrescente; // clicar na coluna já ordenada inverte o sentido; em outra coluna começa A-Z
+
+    // Rotas prontas dos links (calculadas aqui porque aspas dentro de um atributo asp-* quebram o Razor)
+    var rotaSemNome = Rota(new[] { "Nome" }); // chip de nome: tira o texto do filtro
+    var rotaSemCurso = Rota(new[] { "CursoId", "ModuloId" }); // chip de curso: tira também o módulo, que só existe dentro do curso
+    var rotaSemModulo = Rota(new[] { "ModuloId" }); // chip de módulo
+    var rotaOrdenarNome = Rota(ordenarPor: "nome", decrescente: ProximoDecrescente("nome")); // cabeçalho "Aluno"
+    var rotaOrdenarCurso = Rota(ordenarPor: "curso", decrescente: ProximoDecrescente("curso")); // cabeçalho "Curso"
+
+    var nomeCurso = Model.Cursos.FirstOrDefault(c => c.Value == Model.CursoId?.ToString())?.Text; // nome do curso filtrado, para o chip
+    var nomeModulo = Model.Modulos.FirstOrDefault(m => m.Value == Model.ModuloId?.ToString())?.Text; // nome do módulo filtrado, para o chip
 }
 
-@* ===== Cabeçalho da página + total dinâmico ===== *@
-<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-    <partial name="_PageHeader" /> @* título + subtítulo *@
-
-    @* role="status": quando o filtro troca a página, o leitor de tela anuncia o novo total *@
-    <p role="status" class="rounded-xl bg-white border border-slate-200 shadow-sm px-4 py-2 text-sm text-slate-600">
-        <i class="bi bi-people text-brand mr-1" aria-hidden="true"></i>
-        <strong class="text-slate-800 tabular-nums">@Model.TotalAlunos</strong> @(Model.TotalAlunos == 1 ? "aluno" : "alunos")@(filtrando ? " nos filtros aplicados" : "") @* o número muda conforme o filtro *@
+@* ===== Cabeçalho da página ===== *@
+<div class="page-header">
+    <partial name="_PageHeader" /> @* grupo + título + subtítulo *@
+    <p role="status" class="badge text-sm"> @* total dinâmico: muda conforme o filtro; role="status" faz o leitor de tela anunciar o novo total *@
+        <i class="bi bi-people" aria-hidden="true"></i>
+        <span class="tabular-nums text-ink">@Model.TotalAlunos</span>&nbsp;@(Model.TotalAlunos == 1 ? "aluno" : "alunos")@(filtrando ? " nos filtros aplicados" : "")
     </p>
 </div>
 
-@* ===== Card de filtros =====
+@* ===== Filtros =====
    GET: o filtro vai na URL (/Alunos?Nome=ana&CursoId=3), então dá para copiar o link e o F5 mantém o filtro.
    data-url-modulos é lido pelo alunos.js para preencher o select de módulo quando o curso muda *@
-<div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 mb-6">
-    <form asp-action="Index" method="get" data-url-modulos="@Url.Action("GetModulosPorCurso", "Alunos")"
-          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] gap-4 items-end">
+<form asp-action="Index" method="get" data-url-modulos="@Url.Action("GetModulosPorCurso", "Alunos")" class="card mb-4 p-4">
+    @if (Model.OrdenarPor != "nome") { <input type="hidden" name="OrdenarPor" value="@Model.OrdenarPor" /> } @* o filtro novo mantém a ordenação escolhida *@
+    @if (Model.Decrescente) { <input type="hidden" name="Decrescente" value="true" /> }
 
+    <div class="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_auto]">
         <div>
-            <label asp-for="Nome" class="block text-xs font-semibold text-slate-500 mb-1.5">Nome do aluno</label>
-            <input asp-for="Nome" type="search" placeholder="Digite o nome..." autocomplete="off" class="@campo" />
+            <label asp-for="Nome" class="field-label">Nome do aluno</label>
+            <input asp-for="Nome" type="search" placeholder="Digite o nome" autocomplete="off" class="input" />
         </div>
-
         <div>
-            <label asp-for="CursoId" class="block text-xs font-semibold text-slate-500 mb-1.5">Curso</label>
-            <select asp-for="CursoId" asp-items="Model.Cursos" class="@campo">
-                <option value="">Todos</option> @* value vazio = cursoId null no controller *@
+            <label asp-for="CursoId" class="field-label">Curso</label>
+            <select asp-for="CursoId" asp-items="Model.Cursos" class="input">
+                <option value="">Todos os cursos</option> @* value vazio = cursoId null no controller *@
             </select>
         </div>
-
         <div>
-            <label asp-for="ModuloId" class="block text-xs font-semibold text-slate-500 mb-1.5">Módulo</label>
+            <label asp-for="ModuloId" class="field-label">Módulo</label>
             @* Desabilitado até escolher um curso: os módulos só existem dentro de um curso (e um select desabilitado não vai na URL) *@
-            <select asp-for="ModuloId" asp-items="Model.Modulos" disabled="@(!Model.CursoId.HasValue)" class="@campo">
-                <option value="">Todos</option>
+            <select asp-for="ModuloId" asp-items="Model.Modulos" disabled="@(!Model.CursoId.HasValue)" class="input">
+                <option value="">Todos os módulos</option>
             </select>
         </div>
-
         <div class="flex gap-2">
-            <button type="submit"
-                    class="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2">
-                <i class="bi bi-search" aria-hidden="true"></i>
-                Filtrar
-            </button>
-            <a asp-action="Index"
-               class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 border border-slate-300 hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50">
-                Limpar
-            </a>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-search" aria-hidden="true"></i>Filtrar</button>
+            <a asp-action="Index" class="btn btn-secondary">Limpar</a>
         </div>
-    </form>
-</div>
+    </div>
 
-@* ===== Card da tabela =====
-   overflow-hidden só arredonda as bordas; a rolagem horizontal fica no wrapper interno, então nada é cortado em telas estreitas *@
-<div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-    @if (Model.Alunos.Count == 0)
+    @* Chips dos filtros ativos: cada um remove só o seu filtro *@
+    @if (filtrando)
     {
-        <partial name="_EmptyState" model='"Nenhum aluno encontrado."' /> @* estado vazio compartilhado *@
+        <ul class="mt-3 flex flex-wrap items-center gap-2" aria-label="Filtros ativos">
+            @if (!string.IsNullOrWhiteSpace(Model.Nome))
+            {
+                <li class="chip">Nome: @Model.Nome<a asp-action="Index" asp-all-route-data="rotaSemNome" class="chip-remove" aria-label="Remover filtro de nome"><i class="bi bi-x" aria-hidden="true"></i></a></li>
+            }
+            @if (Model.CursoId.HasValue && nomeCurso is not null)
+            {
+                @* remover o curso também remove o módulo, que só existe dentro do curso *@
+                <li class="chip max-w-full"><span class="truncate">Curso: @nomeCurso</span><a asp-action="Index" asp-all-route-data="rotaSemCurso" class="chip-remove shrink-0" aria-label="Remover filtro de curso"><i class="bi bi-x" aria-hidden="true"></i></a></li>
+            }
+            @if (Model.ModuloId.HasValue && nomeModulo is not null)
+            {
+                <li class="chip max-w-full"><span class="truncate">Módulo: @nomeModulo</span><a asp-action="Index" asp-all-route-data="rotaSemModulo" class="chip-remove shrink-0" aria-label="Remover filtro de módulo"><i class="bi bi-x" aria-hidden="true"></i></a></li>
+            }
+        </ul>
     }
-    else
-    {
-        <div class="overflow-x-auto">
-            <table class="w-full min-w-[40rem] text-sm">
-                <caption class="sr-only">Lista de alunos. Use o botão da primeira coluna para ver os módulos de cada aluno.</caption> @* nome da tabela para o leitor de tela *@
-                <thead>
-                    <tr class="text-left text-slate-500 border-b border-slate-100">
-                        <th scope="col" class="w-12 px-3 py-4"><span class="sr-only">Módulos</span></th> @* coluna do botão de expandir *@
-                        <th scope="col" class="px-5 py-4 font-semibold">Matrícula</th>
-                        <th scope="col" class="px-5 py-4 font-semibold">Nome</th>
-                        <th scope="col" class="px-5 py-4 font-semibold">Curso</th>
-                        <th scope="col" class="px-5 py-4 font-semibold">Módulo atual</th>
+</form>
+
+@* ===== Tabela ===== *@
+@if (Model.Alunos.Count == 0)
+{
+    <div class="card">
+        @if (filtrando)
+        {
+            <partial name="_EmptyState" model='new EstadoVazioViewModel { Icone = "bi-search", Titulo = "Nenhum aluno encontrado", Descricao = "Nenhum aluno corresponde aos filtros aplicados. Tente outros termos ou limpe os filtros." }' />
+            <div class="-mt-6 pb-10 text-center"><a asp-action="Index" class="btn btn-secondary">Limpar filtros</a></div> @* ação direta para sair do "sem resultados" *@
+        }
+        else
+        {
+            <partial name="_EmptyState" model='new EstadoVazioViewModel { Icone = "bi-people", Titulo = "Nenhum aluno sincronizado", Descricao = "Os alunos chegam do Moodle. Vá até Cursos e use Sincronizar com Moodle e NSG." }' />
+            <div class="-mt-6 pb-10 text-center"><a asp-controller="Home" asp-action="Index" class="btn btn-secondary">Ir para Cursos</a></div>
+        }
+    </div>
+}
+else
+{
+    <div class="table-wrap">
+        @* Os roles explícitos mantêm a semântica de tabela mesmo quando o CSS transforma a tabela em cards (display: block) *@
+        <table class="table table-stack" role="table">
+            <caption class="sr-only">Lista de alunos. Use o botão da primeira coluna para ver os módulos de cada aluno.</caption> @* nome da tabela para o leitor de tela *@
+            <thead role="rowgroup">
+                <tr role="row">
+                    <th scope="col" role="columnheader" class="w-12"><span class="sr-only">Módulos</span></th> @* coluna do botão de expandir *@
+                    <th scope="col" role="columnheader" aria-sort="@AriaSort("nome")">
+                        <a asp-action="Index" asp-all-route-data="rotaOrdenarNome" class="th-sort" aria-current="@(Ordenada("nome") ? "true" : null)">Aluno<i class="bi @(Ordenada("nome") ? (Model.Decrescente ? "bi-arrow-down" : "bi-arrow-up") : "bi-arrow-down-up")" aria-hidden="true"></i></a>
+                    </th>
+                    <th scope="col" role="columnheader" aria-sort="@AriaSort("curso")">
+                        <a asp-action="Index" asp-all-route-data="rotaOrdenarCurso" class="th-sort" aria-current="@(Ordenada("curso") ? "true" : null)">Curso<i class="bi @(Ordenada("curso") ? (Model.Decrescente ? "bi-arrow-down" : "bi-arrow-up") : "bi-arrow-down-up")" aria-hidden="true"></i></a>
+                    </th>
+                    <th scope="col" role="columnheader">Módulo atual</th>
+                </tr>
+            </thead>
+            <tbody role="rowgroup">
+                @for (var i = 0; i < Model.Alunos.Count; i++) // um par de linhas por aluno: a principal e a dos módulos (escondida)
+                {
+                    var aluno = Model.Alunos[i]; // aluno desta volta
+                    var idDetalhe = $"detalhe-aluno-{i}"; // id da linha escondida, ligado ao botão por aria-controls
+
+                    <tr role="row">
+                        <td role="cell" class="cell-expand text-center">
+                            @* O alunos.js mostra/esconde a linha "idDetalhe" e atualiza o aria-expanded *@
+                            <button type="button" data-alunos-toggle="@idDetalhe" aria-controls="@idDetalhe" aria-expanded="false" aria-label="Mostrar módulos de @aluno.Nome" class="btn btn-ghost btn-icon btn-sm">
+                                <i class="bi bi-chevron-right inline-block transition-transform" aria-hidden="true"></i> @* o alunos.js gira a seta quando expande *@
+                            </button>
+                        </td>
+                        <td role="cell">
+                            <p class="font-medium text-ink">@aluno.Nome</p> @* nome em peso médio (os dados vêm em caixa alta do Moodle; negrito pesado deixaria a coluna gritando) *@
+                            <p class="mt-0.5 text-xs text-ink-soft tabular-nums">Matrícula @aluno.Matricula</p> @* matrícula logo abaixo do nome: uma coluna a menos *@
+                        </td>
+                        <td role="cell" data-label="Curso"><p class="cell-clamp" title="@aluno.Curso">@aluno.Curso</p></td> @* no máximo 2 linhas; o nome completo fica no title *@
+                        <td role="cell" data-label="Módulo atual">
+                            @if (string.IsNullOrEmpty(aluno.ModuloAtual))
+                            {
+                                <span class="text-ink-muted">—</span> @* traço quando não há módulo em aberto *@
+                            }
+                            else
+                            {
+                                <p class="cell-clamp" title="@aluno.ModuloAtual">@aluno.ModuloAtual</p>
+                            }
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @for (var i = 0; i < Model.Alunos.Count; i++) // um par de linhas por aluno: a principal e a dos módulos (escondida)
-                    {
-                        var aluno = Model.Alunos[i]; // aluno desta volta
-                        var idDetalhe = $"detalhe-aluno-{i}"; // id da linha escondida, ligado ao botão por aria-controls
 
-                        <tr class="border-b border-slate-50 hover:bg-slate-50/60">
-                            <td class="px-3 py-3 text-center">
-                                @* O alunos.js mostra/esconde a linha "idDetalhe" e atualiza o aria-expanded *@
-                                <button type="button" data-alunos-toggle="@idDetalhe" aria-controls="@idDetalhe" aria-expanded="false" aria-label="Mostrar módulos de @aluno.Nome"
-                                        class="p-2 rounded-lg text-slate-400 hover:bg-brand-light hover:text-brand transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50">
-                                    <i class="bi bi-chevron-right inline-block transition-transform" aria-hidden="true"></i> @* o alunos.js gira a seta quando expande *@
-                                </button>
-                            </td>
-                            <td class="px-5 py-3 text-slate-600 whitespace-nowrap tabular-nums">@aluno.Matricula</td>
-                            <td class="px-5 py-3 font-semibold text-slate-800">@aluno.Nome</td>
-                            <td class="px-5 py-3 text-slate-600">@aluno.Curso</td>
-                            <td class="px-5 py-3 text-slate-600">@(string.IsNullOrEmpty(aluno.ModuloAtual) ? "—" : aluno.ModuloAtual)</td> @* traço quando não há módulo em aberto *@
-                        </tr>
-
-                        @* Linha dos módulos do aluno: começa escondida (atributo hidden) *@
-                        <tr id="@idDetalhe" hidden class="border-b border-slate-50 bg-slate-50/70">
-                            <td></td> @* alinha com a coluna do botão *@
-                            <td colspan="4" class="px-5 py-4">
-                                @if (aluno.Modulos.Count == 0)
-                                {
-                                    <p class="text-xs text-slate-400">Este aluno ainda não tem módulos.</p>
-                                }
-                                else
-                                {
-                                    <div class="overflow-x-auto">
-                                        <table class="w-full text-xs">
-                                            <caption class="sr-only">Módulos de @aluno.Nome</caption>
-                                            <thead>
-                                                <tr class="text-left text-slate-500">
-                                                    <th scope="col" class="py-2 pr-4 font-semibold">Módulo</th>
-                                                    <th scope="col" class="py-2 pr-4 font-semibold whitespace-nowrap">Data de inscrição</th>
-                                                    <th scope="col" class="py-2 pr-4 font-semibold whitespace-nowrap">Data fim</th>
-                                                    <th scope="col" class="py-2 font-semibold text-right whitespace-nowrap">Nota final</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="divide-y divide-slate-200">
-                                                @foreach (var modulo in aluno.Modulos) // um item por inscrição do aluno
-                                                {
-                                                    <tr>
-                                                        <td class="py-2 pr-4 text-slate-700">@modulo.Nome</td>
-                                                        <td class="py-2 pr-4 text-slate-600 whitespace-nowrap">@modulo.DataInscricao.ToString("dd/MM/yyyy")</td>
-                                                        <td class="py-2 pr-4 text-slate-600 whitespace-nowrap">@(modulo.DataFim?.ToString("dd/MM/yyyy") ?? "—")</td> @* ainda não é preenchida pela sincronização, então mostra traço *@
-                                                        <td class="py-2 text-right text-slate-800 font-semibold tabular-nums whitespace-nowrap">@(modulo.NotaFinal?.ToString("0.0#", ptBr) ?? "—")</td> @* traço quando não há tentativa corrigida *@
-                                                    </tr>
-                                                }
-                                            </tbody>
-                                        </table>
+                    @* Linha dos módulos do aluno: começa escondida (atributo hidden) *@
+                    <tr id="@idDetalhe" role="row" hidden>
+                        <td role="cell" class="!bg-page !p-0"></td> @* alinha com a coluna do botão *@
+                        <td role="cell" colspan="3" class="!bg-page">
+                            @if (aluno.Modulos.Count == 0)
+                            {
+                                <p class="text-xs text-ink-soft">Este aluno ainda não tem módulos.</p>
+                            }
+                            else
+                            {
+                                @* Lista de módulos (e não uma segunda <table>, que herdaria o estilo e o modo "cards" da tabela principal). Em telas largas é uma grade de
+                                   4 colunas com cabeçalho; em telas estreitas cada módulo vira um bloco, com o rótulo em cima de cada valor *@
+                                <div class="text-xs">
+                                    <div class="hidden gap-x-4 py-1.5 font-medium text-ink-soft sm:grid sm:grid-cols-[minmax(0,1fr)_6rem_6rem_5rem]" aria-hidden="true"> @* cabeçalho visual (o leitor de tela lê os rótulos de cada item) *@
+                                        <span>Módulo</span><span>Inscrição</span><span>Conclusão</span><span class="text-right">Nota final</span>
                                     </div>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
-</div>
+                                    <ul class="divide-y divide-line" aria-label="Módulos de @aluno.Nome">
+                                        @foreach (var modulo in aluno.Modulos) // um item por inscrição do aluno
+                                        {
+                                            <li class="grid grid-cols-3 gap-x-4 gap-y-1 py-2 sm:grid-cols-[minmax(0,1fr)_6rem_6rem_5rem]">
+                                                <span class="col-span-3 text-ink sm:col-span-1">@modulo.Nome</span>
+                                                <span class="tabular-nums text-ink-soft"><span class="block text-ink-muted sm:hidden">Inscrição</span>@modulo.DataInscricao.ToString("dd/MM/yyyy")</span>
+                                                <span class="tabular-nums text-ink-soft"><span class="block text-ink-muted sm:hidden">Conclusão</span>@(modulo.DataFim?.ToString("dd/MM/yyyy") ?? "—")</span> @* ainda não é preenchida pela sincronização, então mostra traço *@
+                                                <span class="font-medium tabular-nums text-ink sm:text-right"><span class="block font-normal text-ink-muted sm:hidden">Nota final</span>@(modulo.NotaFinal?.ToString("0.0#", ptBr) ?? "—")</span> @* traço quando não há tentativa corrigida *@
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4"><partial name="_Paginacao" model="Model.Paginacao" /></div> @* "Mostrando 1–25 de 94 alunos" + páginas *@
+}
 
 @section Scripts {
     <script src="~/js/alunos.js" asp-append-version="true"></script> @* expandir linhas e cascata Curso -> Módulo *@

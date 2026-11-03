@@ -13,6 +13,11 @@ namespace PSGN.Presentation.ViewModels
         public int? CursoId { get; set; } // curso escolhido no filtro (null = todos)
         public int? ModuloId { get; set; } // módulo escolhido no filtro (null = todos)
 
+        // REVISÃO: ordenação e paginação (autorizadas pelo usuário no redesign); as views usam estes campos para marcar a coluna ordenada e montar a paginação
+        public string OrdenarPor { get; set; } = "nome"; // coluna ordenada: "nome" ou "curso"
+        public bool Decrescente { get; set; } // true = Z-A
+        public PaginacaoViewModel Paginacao { get; set; } = new PaginacaoViewModel(); // dados da paginação (página atual, total, links)
+
         public List<AlunosAlunoItem> Alunos { get; set; } = new List<AlunosAlunoItem>();
     }
 

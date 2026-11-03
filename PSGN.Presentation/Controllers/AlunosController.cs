@@ -19,18 +19,40 @@ namespace PSGN.Presentation.Controllers // pasta dos controllers do MVC
             _cursoService = cursoService; // guarda para usar nas actions
         } // fim do construtor
 
-        // Os parâmetros vêm da query string do formulário de filtro (GET): /Alunos?nome=ana&cursoId=3&moduloId=12
-        public async Task<IActionResult> Index(string? nome, int? cursoId, int? moduloId) // sem parâmetros = lista todos os alunos
+        private const int AlunosPorPagina = 25; // REVISÃO: tamanho da página da tabela
+
+        // Os parâmetros vêm da query string (GET): /Alunos?Nome=ana&CursoId=3&ModuloId=12&OrdenarPor=curso&Decrescente=true&Pagina=2
+        public async Task<IActionResult> Index(string? nome, int? cursoId, int? moduloId, string? ordenarPor, bool decrescente, int pagina = 1) // sem parâmetros = primeira página, ordenada por nome
         {
-            var alunos = await _alunoService.ListarAlunosAsync(nome, cursoId, moduloId); // entidades do domain, já filtradas e ordenadas pelo service
+            ordenarPor = string.Equals(ordenarPor, "curso", StringComparison.OrdinalIgnoreCase) ? "curso" : "nome"; // REVISÃO: só duas colunas são ordenáveis; qualquer outro valor da URL vira "nome"
+            var resultado = await _alunoService.ListarAlunosAsync(nome, cursoId, moduloId, ordenarPor, decrescente, pagina, AlunosPorPagina); // REVISÃO: entidades do domain (uma página), já filtradas e ordenadas pelo service
+            var alunos = resultado.Items; // REVISÃO: os alunos desta página
             var cursos = await _cursoService.ListarCursosAsync(); // cursos com os módulos carregados (os mesmos que a Home usa)
+
+            var rota = new Dictionary<string, string>(); // REVISÃO: filtros e ordenação ativos; cada link da paginação os leva junto para não se perderem
+            if (!string.IsNullOrWhiteSpace(nome)) rota["Nome"] = nome; // texto do filtro
+            if (cursoId.HasValue) rota["CursoId"] = cursoId.Value.ToString(); // curso do filtro
+            if (moduloId.HasValue) rota["ModuloId"] = moduloId.Value.ToString(); // módulo do filtro
+            if (ordenarPor != "nome") rota["OrdenarPor"] = ordenarPor; // só vai na URL quando não é o padrão (mantém os links curtos)
+            if (decrescente) rota["Decrescente"] = "true"; // sentido Z-A
 
             var viewModel = new AlunosViewModel // objeto que a View vai exibir
             { // inicializador do ViewModel
                 Nome = nome, // devolve o texto digitado para o campo continuar preenchido
                 CursoId = cursoId, // devolve o curso escolhido para o select continuar marcado
                 ModuloId = moduloId, // devolve o módulo escolhido para o select continuar marcado
-                TotalAlunos = alunos.Count, // total dinâmico: muda conforme o filtro
+                OrdenarPor = ordenarPor, // REVISÃO: coluna ordenada, para a view marcar o cabeçalho
+                Decrescente = decrescente, // REVISÃO: sentido da ordenação
+                TotalAlunos = resultado.TotalItems, // total dinâmico: quantos alunos o filtro encontrou (em TODAS as páginas, não só nesta)
+                Paginacao = new PaginacaoViewModel // REVISÃO: dados da partial _Paginacao
+                { // inicializador da paginação
+                    PaginaAtual = resultado.PaginaAtual, // página mostrada (já corrigida pelo service se a URL pedia uma inexistente)
+                    TotalPaginas = resultado.TotalPaginas, // quantas páginas existem
+                    TotalItens = resultado.TotalItems, // quantos alunos no total
+                    ItensPorPagina = resultado.TamanhoPagina, // tamanho da página
+                    Rotulo = "alunos", // "Mostrando 1–25 de 94 alunos"
+                    Rota = rota // filtros e ordenação que acompanham os links
+                }, // fim da paginação
                 Cursos = cursos // opções do select de curso
                     .OrderBy(c => c.Nome) // ordem alfabética
                     .Select(c => new SelectListItem { Value = c.IdCurso.ToString(), Text = c.Nome }) // value = id (vai para a query string), texto = nome

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore; // CountAsync, ToListAsync, Include, ThenInclude
 using PSGN.Application.Data; // IPSGNDbContext
+using PSGN.Application.Servicos.Shared; // REVISÃO: PagedResult e PaginarAsync
 using PSGN.Domain; // as entidades Aluno e AlunoModulo
 using System; // DateTime
 using System.Collections.Generic; // List<T>
@@ -44,7 +45,8 @@ namespace PSGN.Application.Servicos.Alunos // pasta nova, igual à "Servicos/Alu
         // REVISÃO: removido o ListarInscricoesAsync, que só alimentava a antiga situação das inscrições do Dashboard
 
         // REVISÃO: método novo, usado pela página de Alunos. Devolve entidades do domain (nunca DTO); o controller é quem monta o ViewModel
-        public async Task<List<Aluno>> ListarAlunosAsync(string? nome, int? idCurso, int? idModulo) // cada filtro é opcional: null = não filtra
+        // REVISÃO: agora paginado e ordenável (autorizado pelo usuário no redesign). Continua devolvendo entidades do domain, dentro de um PagedResult
+        public async Task<PagedResult<Aluno>> ListarAlunosAsync(string? nome, int? idCurso, int? idModulo, string? ordenarPor, bool decrescente, int pagina, int tamanhoPagina) // cada filtro é opcional: null = não filtra
         {
             var consulta = _dbContext.Alunos // começa na tabela de alunos (1 linha por usuário em cada curso)
                 .Include(a => a.Usuario) // traz o usuário, de onde vêm a matrícula e o nome
@@ -63,10 +65,16 @@ namespace PSGN.Application.Servicos.Alunos // pasta nova, igual à "Servicos/Alu
             if (idModulo.HasValue) // se a tela escolheu um módulo
                 consulta = consulta.Where(a => a.Modulos.Any(am => am.IdModulo == idModulo.Value)); // só quem tem inscrição naquele módulo (a lista de módulos do aluno continua completa)
 
-            return await consulta // continua a consulta montada acima
-                .OrderBy(a => a.Usuario.Nome) // ordem alfabética pelo nome do aluno
-                .ThenBy(a => a.Curso.Nome) // desempate: mesma pessoa em dois cursos fica agrupada e em ordem estável
-                .ToListAsync(); // executa a consulta e devolve a lista de entidades
+            // REVISÃO: a coluna de ordenação vem da URL, então só vale o que está nesta lista (nunca vira SQL dinâmico): "curso" ou, em qualquer outro caso, "nome"
+            IQueryable<Aluno> ordenada = (ordenarPor?.ToLowerInvariant(), decrescente) switch // escolhe a ordenação pelo par (coluna, sentido)
+            {
+                ("curso", false) => consulta.OrderBy(a => a.Curso.Nome).ThenBy(a => a.Usuario.Nome).ThenBy(a => a.IdAluno), // curso A-Z, depois nome
+                ("curso", true) => consulta.OrderByDescending(a => a.Curso.Nome).ThenBy(a => a.Usuario.Nome).ThenBy(a => a.IdAluno), // curso Z-A, depois nome
+                (_, true) => consulta.OrderByDescending(a => a.Usuario.Nome).ThenBy(a => a.IdAluno), // nome Z-A (o IdAluno desempata e mantém a paginação estável)
+                _ => consulta.OrderBy(a => a.Usuario.Nome).ThenBy(a => a.Curso.Nome).ThenBy(a => a.IdAluno) // padrão: nome A-Z; a mesma pessoa em dois cursos fica agrupada
+            }; // fim da escolha da ordenação
+
+            return await ordenada.PaginarAsync(pagina, tamanhoPagina); // conta o total, corrige a página e traz só os registros dela
         } // fim do ListarAlunosAsync
     } // fim da classe
 } // fim do namespace

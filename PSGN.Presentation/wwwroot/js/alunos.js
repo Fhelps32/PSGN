@@ -33,7 +33,7 @@
     } // fim do opcao
 
     selectCurso.addEventListener('change', async function () { // quando o curso do filtro muda
-        selectModulo.replaceChildren(opcao('', 'Todos')); // zera os módulos e deixa só "Todos"
+        selectModulo.replaceChildren(opcao('', 'Todos os módulos')); // zera os módulos e deixa só "Todos os módulos" (REVISÃO: texto do redesign)
 
         if (!selectCurso.value) { // voltou para "Todos os cursos"
             selectModulo.disabled = true; // sem curso não há módulos para escolher (e select desabilitado não vai na URL)
@@ -42,7 +42,7 @@
 
         selectModulo.disabled = true; // trava enquanto carrega, para não escolher uma opção que vai sumir
         var resp = await fetch(form.dataset.urlModulos + '?cursoId=' + encodeURIComponent(selectCurso.value)); // pede os módulos do curso ao AlunosController
-        if (!resp.ok) return; // se deu erro no servidor, deixa só "Todos" (e desabilitado)
+        if (!resp.ok) { if (window.PSGN) PSGN.toast('Não foi possível carregar os módulos do curso.', 'danger'); return; } // REVISÃO: antes falhava em silêncio; agora avisa. O select continua só com "Todos os módulos" e desabilitado
 
         var modulos = await resp.json(); // formato: [{ value: 12, text: "Nome do módulo" }, ...]
         modulos.forEach(function (m) { selectModulo.append(opcao(m.value, m.text)); }); // uma opção por módulo
