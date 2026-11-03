@@ -1,0 +1,404 @@
+/* ============================================================
+   REVISÃO: componentes do design system do PSGN. As views usam estas classes (btn, input, card, table...) em vez de repetir dezenas de
+   utilitários do Tailwind; o visual de cada componente fica definido UMA vez, aqui, sempre a partir dos tokens (Styles/tokens.css).
+   ============================================================ */
+
+/* ---------- Base: estilos do documento ---------- */
+@layer base {
+    html {
+        @apply antialiased; /* suaviza a renderização da fonte */
+    }
+
+    body {
+        @apply bg-page font-sans text-base text-ink; /* fundo, fonte Inter 14px e cor do texto de todo o sistema */
+    }
+
+    :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+        outline: 2px solid rgb(var(--brand)); /* anel de foco ÚNICO para todo o sistema, só aparece para quem usa o teclado */
+        outline-offset: 2px; /* afasta o anel do elemento para não encostar na borda */
+    }
+
+    ::placeholder {
+        @apply text-ink-muted opacity-100; /* placeholder com o contraste mínimo (o padrão do navegador é mais claro) */
+    }
+}
+
+@layer components {
+
+    /* ---------- Link "Ir para o conteúdo": fica fora da tela e desce para o canto quando recebe foco pelo Tab ---------- */
+    .skip-link {
+        @apply fixed left-4 top-4 z-50 -translate-y-20 rounded-control border border-line bg-card px-4 py-2 text-sm font-medium text-brand shadow-pop; /* escondido acima da tela (continua focável e legível por leitor de tela) */
+    }
+
+    .skip-link:focus {
+        @apply translate-y-0; /* ao focar, aparece no canto superior esquerdo */
+    }
+
+    /* ---------- Botões: .btn + uma variante (+ .btn-sm / .btn-icon) ---------- */
+    .btn {
+        @apply inline-flex h-9 select-none items-center justify-center gap-2 whitespace-nowrap rounded-control px-3.5 text-sm font-medium transition-colors; /* base: 36px de altura, texto 13px */
+    }
+
+    .btn-primary {
+        @apply bg-brand text-white hover:bg-brand-dark; /* ação principal da tela (no máximo UMA por tela) */
+    }
+
+    .btn-secondary {
+        @apply border border-line-strong bg-card text-ink hover:bg-ink/5; /* ação secundária: branca com borda */
+    }
+
+    .btn-ghost {
+        @apply text-ink-soft hover:bg-ink/5 hover:text-ink; /* ação discreta: sem fundo nem borda */
+    }
+
+    .btn-danger {
+        @apply bg-danger text-white hover:bg-danger/90; /* ação destrutiva (definida para uso futuro; hoje nenhuma tela tem exclusão) */
+    }
+
+    .btn-sm {
+        @apply h-8 px-3; /* versão compacta */
+    }
+
+    .btn-icon {
+        @apply w-9 px-0; /* botão quadrado só com ícone (sempre com aria-label) */
+    }
+
+    .btn[aria-busy="true"] {
+        @apply pointer-events-none opacity-80; /* carregando: não aceita novo clique (evita enviar o formulário duas vezes) */
+    }
+
+    .btn[aria-busy="true"]::before {
+        content: ""; /* cria o círculo do spinner antes do texto */
+        @apply spinner; /* mesmo spinner do resto do sistema */
+    }
+
+    .spinner {
+        @apply inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent; /* círculo girando, na cor do texto */
+    }
+
+    /* ---------- Campos de formulário ---------- */
+    .field-label {
+        @apply mb-1.5 block text-xs font-medium text-ink-soft; /* rótulo sempre visível acima do campo */
+    }
+
+    .field-required::after {
+        content: " *"; /* marca de campo obrigatório */
+        @apply text-danger;
+    }
+
+    .input {
+        @apply block h-9 w-full rounded-control border border-line-strong bg-card px-3 text-sm text-ink transition-colors; /* campo de 36px, igual aos botões */
+    }
+
+    .input:hover {
+        @apply border-ink-muted; /* borda mais forte ao passar o mouse */
+    }
+
+    .input:focus {
+        outline: none; /* o foco do campo é a borda + halo abaixo, não o anel padrão */
+        border-color: rgb(var(--brand));
+        box-shadow: 0 0 0 3px rgb(var(--brand) / 0.18); /* halo suave na cor do acento */
+    }
+
+    .input:disabled {
+        @apply cursor-not-allowed bg-page text-ink-muted; /* campo desabilitado fica apagado */
+    }
+
+    .input[aria-invalid="true"],
+    .input.input-validation-error {
+        @apply border-danger; /* estado de erro (também a classe que o ASP.NET coloca na validação) */
+    }
+
+    .input[aria-invalid="true"]:focus,
+    .input.input-validation-error:focus {
+        box-shadow: 0 0 0 3px rgb(var(--danger) / 0.18); /* halo vermelho no foco */
+    }
+
+    select.input {
+        @apply appearance-none pr-9; /* tira a seta do navegador e reserva espaço para a nossa */
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357647a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E"); /* seta em cinza ink-3 */
+        background-repeat: no-repeat; /* uma seta só */
+        background-position: right 0.625rem center; /* canto direito, centralizada na vertical */
+        background-size: 1rem; /* 16px */
+    }
+
+    .field-error {
+        @apply mt-1 text-xs text-danger; /* mensagem de erro abaixo do campo */
+    }
+
+    /* ---------- Cards ---------- */
+    .card {
+        @apply rounded-card border border-line bg-card; /* superfície padrão: branca, borda de 1px, SEM sombra */
+    }
+
+    .card-header {
+        @apply flex flex-wrap items-start justify-between gap-3 px-5 pt-5; /* cabeçalho do card: título à esquerda, controles à direita */
+    }
+
+    .card-title {
+        @apply text-lg font-semibold text-ink; /* título do card, 16px */
+    }
+
+    .card-desc {
+        @apply mt-0.5 text-xs text-ink-soft; /* descrição curta abaixo do título */
+    }
+
+    .card-body {
+        @apply p-5; /* miolo do card */
+    }
+
+    /* ---------- Indicador (KPI) ---------- */
+    .kpi {
+        @apply card flex items-center justify-between gap-4 px-5 py-4 transition-colors; /* card com número grande */
+    }
+
+    a.kpi:hover {
+        @apply border-line-strong bg-ink/[0.02]; /* quando o indicador é um link, reage ao mouse */
+    }
+
+    .kpi-label {
+        @apply text-xs font-medium text-ink-soft; /* o que está sendo contado */
+    }
+
+    .kpi-value {
+        @apply mt-1 text-3xl font-semibold tabular-nums text-ink; /* o número, em algarismos de largura fixa */
+    }
+
+    .kpi-icon {
+        @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-brand-soft text-lg text-brand; /* ícone discreto num quadrado suave */
+    }
+
+    /* ---------- Cabeçalho de página ---------- */
+    .page-header {
+        @apply mb-6 flex flex-wrap items-end justify-between gap-4; /* título à esquerda, ações à direita; as ações descem em telas estreitas */
+    }
+
+    .page-eyebrow {
+        @apply mb-1 text-xs font-medium text-ink-muted; /* grupo da sidebar a que a página pertence */
+    }
+
+    .page-title {
+        @apply text-2xl font-semibold tracking-tight text-ink; /* título da página, 24px */
+    }
+
+    .page-subtitle {
+        @apply mt-1 text-sm text-ink-soft; /* subtítulo de uma linha */
+    }
+
+    .page-actions {
+        @apply flex flex-wrap items-center gap-2; /* área das ações da página */
+    }
+
+    /* ---------- Tabela ---------- */
+    .table-wrap {
+        @apply overflow-clip rounded-card border border-line bg-card; /* overflow-clip arredonda os cantos SEM quebrar o cabeçalho fixo (overflow-hidden quebraria) */
+    }
+
+    .table {
+        @apply w-full border-separate border-spacing-0 text-sm; /* border-separate é necessário para a borda do cabeçalho fixo acompanhar a rolagem */
+    }
+
+    .table thead th {
+        @apply sticky top-0 z-10 border-b border-line bg-page px-4 py-2.5 text-left text-xs font-medium text-ink-soft; /* cabeçalho fixo no topo ao rolar */
+    }
+
+    .table tbody td {
+        @apply border-b border-line px-4 py-3 align-top; /* linhas de ~48px */
+    }
+
+    .table tbody tr:hover > td {
+        background-color: rgb(var(--ink) / 0.025); /* destaca a linha sob o mouse */
+    }
+
+    .table tbody tr:last-child > td {
+        border-bottom-width: 0; /* a última linha não precisa de divisor: o card já tem borda */
+    }
+
+    .th-sort {
+        @apply inline-flex items-center gap-1 rounded-control text-ink-soft hover:text-ink; /* cabeçalho clicável para ordenar */
+    }
+
+    .th-sort[aria-current="true"] {
+        @apply text-ink; /* a coluna ordenada fica em destaque */
+    }
+
+    .cell-clamp {
+        @apply line-clamp-2; /* no máximo 2 linhas: o texto completo vai no atributo title */
+    }
+
+    /* Telas estreitas: a tabela vira uma lista de cards (cada linha vira um card, cada célula mostra o seu rótulo). Marcação única, sem duplicar HTML */
+    @media (max-width: 767.98px) {
+        .table-stack thead {
+            position: absolute; /* esconde o cabeçalho visualmente, mas o leitor de tela continua lendo */
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+        }
+
+        .table-stack,
+        .table-stack tbody {
+            display: block; /* deixa de ser tabela */
+        }
+
+        .table-stack tr {
+            display: block; /* cada linha vira um bloco (card) */
+            position: relative;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgb(var(--line));
+        }
+
+        .table-stack tr[hidden] {
+            display: none; /* linha de detalhes fechada continua escondida */
+        }
+
+        .table-stack td {
+            display: block; /* cada célula vira uma linha do card */
+            padding: 0.125rem 0;
+            border: 0;
+        }
+
+        .table-stack td[data-label]::before {
+            content: attr(data-label); /* mostra o nome da coluna acima do valor */
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            line-height: 1rem;
+            color: rgb(var(--ink-3));
+        }
+
+        .table-stack td.cell-expand {
+            position: absolute; /* botão de expandir no canto do card */
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0;
+        }
+    }
+
+    /* ---------- Paginação ---------- */
+    .pager {
+        @apply flex flex-wrap items-center justify-between gap-3 px-1 text-sm text-ink-soft; /* "Mostrando X de Y" à esquerda, páginas à direita */
+    }
+
+    .pager-btn {
+        @apply inline-flex h-8 min-w-8 items-center justify-center rounded-control border border-line-strong bg-card px-2 text-sm text-ink-soft transition-colors hover:bg-ink/5; /* botão de página */
+    }
+
+    .pager-btn[aria-current="page"] {
+        @apply border-brand bg-brand text-white hover:bg-brand; /* página atual */
+    }
+
+    .pager-btn[aria-disabled="true"] {
+        @apply pointer-events-none opacity-50; /* anterior/próxima indisponíveis */
+    }
+
+    /* ---------- Chips, badges e links ---------- */
+    .chip {
+        @apply inline-flex items-center gap-1 rounded-full border border-line-strong bg-card py-1 pl-3 pr-1.5 text-xs text-ink; /* filtro ativo, removível */
+    }
+
+    .chip-remove {
+        @apply flex h-5 w-5 items-center justify-center rounded-full text-ink-soft hover:bg-ink/10 hover:text-ink; /* "x" do chip */
+    }
+
+    .badge {
+        @apply inline-flex items-center gap-1 rounded-full bg-ink/5 px-2 py-0.5 text-xs font-medium text-ink-soft; /* etiqueta neutra (ex.: "9 módulos") */
+    }
+
+    .link {
+        @apply font-medium text-brand underline-offset-2 hover:underline; /* link de texto */
+    }
+
+    /* ---------- Avisos (alert) e notificações (toast) ---------- */
+    .alert {
+        @apply flex items-start gap-3 rounded-control border px-3.5 py-3 text-sm; /* aviso fixo na página */
+    }
+
+    .alert-success {
+        @apply border-success/30 bg-success-soft text-success;
+    }
+
+    .alert-danger {
+        @apply border-danger/30 bg-danger-soft text-danger;
+    }
+
+    .alert-warning {
+        @apply border-warning/30 bg-warning-soft text-warning;
+    }
+
+    .alert-close {
+        @apply -my-1 -mr-1.5 ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-control opacity-70 hover:bg-ink/5 hover:opacity-100; /* botão de fechar o aviso */
+    }
+
+    .toast-region {
+        @apply pointer-events-none fixed bottom-4 right-4 z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2; /* canto inferior direito; a região não bloqueia cliques, só os toasts */
+    }
+
+    .toast {
+        @apply pointer-events-auto flex items-start gap-3 rounded-card border border-line bg-card px-4 py-3 text-sm text-ink shadow-pop; /* notificação temporária (única com sombra) */
+        animation: toast-in 0.2s ease-out; /* entra deslizando */
+    }
+
+    .toast[data-saindo="true"] {
+        @apply opacity-0 transition-opacity; /* some suavemente antes de sair do DOM */
+    }
+
+    /* ---------- Tooltip (um único elemento criado pelo ui.js) ---------- */
+    .tooltip {
+        @apply pointer-events-none fixed z-[60] rounded-control bg-ink px-2 py-1 text-xs font-medium text-white shadow-pop; /* balão escuro, posicionado pelo JavaScript */
+    }
+
+    /* ---------- Estado vazio ---------- */
+    .empty {
+        @apply flex flex-col items-center px-6 py-14 text-center; /* ícone, título e descrição centralizados */
+    }
+
+    .empty-icon {
+        @apply mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-ink/5 text-xl text-ink-soft; /* ícone num círculo suave */
+    }
+
+    .empty-title {
+        @apply text-base font-semibold text-ink; /* o que aconteceu */
+    }
+
+    .empty-desc {
+        @apply mt-1 max-w-sm text-sm text-ink-soft; /* o que fazer */
+    }
+
+    /* ---------- Carregamento: véu com spinner por cima de um card (gráficos) ---------- */
+    .is-loading {
+        @apply relative; /* referência para o véu */
+    }
+
+    .is-loading::after {
+        content: ""; /* véu semitransparente sobre o conteúdo antigo */
+        @apply absolute inset-0 z-10 rounded-card bg-card/70;
+    }
+
+    .is-loading::before {
+        content: ""; /* spinner no centro */
+        @apply spinner absolute left-1/2 top-1/2 z-20 -ml-2 -mt-2 text-brand;
+    }
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0; /* começa invisível */
+        transform: translateY(0.5rem); /* e um pouco abaixo */
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toast {
+        animation: none; /* quem pede menos movimento no sistema não vê a animação */
+    }
+
+    .spinner,
+    .btn[aria-busy="true"]::before {
+        animation-duration: 1.5s; /* o spinner continua girando (é indicador de progresso), só mais devagar */
+    }
+}

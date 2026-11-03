@@ -1,8 +1,13 @@
-@* REVISÃO: partial nova. O título e o subtítulo apareciam com as mesmas classes em toda view. Ela lê ViewData["Title"] (que cada view já define para a aba) e ViewData["Subtitle"] (novo, opcional); as partials herdam o ViewData da view que as chama *@
-<div>
-    <h1 class="text-2xl sm:text-3xl font-bold text-slate-800">@ViewData["Title"]</h1> @* título da página; menor no celular para não quebrar em várias linhas *@
-    @if (ViewData["Subtitle"] is string subtitulo) @* subtítulo é opcional *@
+@* REVISÃO: bloco de título do cabeçalho de página, agora com o grupo da sidebar acima do título (ViewData["Section"]). Lê ViewData["Title"] (que cada view já define para a aba) e
+   ViewData["Subtitle"] (opcional). Uso: <div class="page-header"> <partial name="_PageHeader" /> <div class="page-actions">…ações…</div> </div> *@
+<div class="min-w-0">
+    @if (ViewData["Section"] is string secao) @* o grupo é opcional *@
     {
-        <p class="text-slate-500 text-sm mt-1">@subtitulo</p> @* texto de apoio *@
+        <p class="page-eyebrow">@secao</p> @* ex.: "Acadêmico" *@
+    }
+    <h1 class="page-title">@ViewData["Title"]</h1> @* título da página *@
+    @if (ViewData["Subtitle"] is string subtitulo) @* o subtítulo é opcional *@
+    {
+        <p class="page-subtitle">@subtitulo</p> @* texto de apoio de uma linha *@
     }
 </div>

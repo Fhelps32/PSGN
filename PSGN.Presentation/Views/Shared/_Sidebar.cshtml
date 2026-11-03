@@ -1,59 +1,66 @@
-@* REVISÃO: sidebar refeita para ser responsiva. Abaixo de 1024px vira um painel sobreposto (aberto pelo botão da _Topbar); a partir de 1024px fica fixa e recolhível. O JavaScript saiu daqui e foi para wwwroot/js/sidebar.js *@
+@* REVISÃO: sidebar do redesign. Itens agrupados por tema, item ativo com barra de acento, tooltip nos ícones quando recolhida e botão de recolher no rodapé.
+   Abaixo de 1024px vira painel sobreposto (aberto pelo botão da _Topbar); a partir de 1024px fica fixa. Largura e deslocamento: Styles/layout.css; comportamento: wwwroot/js/sidebar.js *@
 @{
     var controller = ViewContext.RouteData.Values["controller"]?.ToString(); // controller da página atual, para destacar o item ativo
 
-    var navItems = new[] // itens do menu num array, para não repetir o HTML de cada link
+    var grupos = new[] // grupos de navegação; cada grupo tem um título e seus itens (só as telas que existem hoje)
     {
-        new { Ctrl = "Dashboard", Icon = "bi-grid", Label = "Dashboard" }, // tela de dashboard
-        new { Ctrl = "Home",      Icon = "bi-book", Label = "Cursos" }, // tela inicial, que lista os cursos e tem o botão de sincronizar
-        new { Ctrl = "Alunos",    Icon = "bi-people", Label = "Alunos" } // tela de alunos
-    }; // fim dos itens
-
-    const string navBase = "nav-link flex items-center gap-4 px-4 py-3 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"; // classes de todo link (REVISÃO: o focus-visible mostra o anel de foco só para quem navega pelo teclado)
-    const string navInactive = "text-slate-600 hover:bg-brand-light hover:text-brand"; // classes do link que NÃO é a página atual
-    const string navActive = "bg-brand-light text-brand font-semibold"; // classes do link da página atual
-    const string botaoIcone = "shrink-0 p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"; // classes dos botões de ícone do cabeçalho
+        new { Titulo = "Visão geral", Itens = new[] { new { Ctrl = "Dashboard", Icone = "bi-grid-1x2", Rotulo = "Dashboard" } } }, // grupo de resumo
+        new { Titulo = "Acadêmico", Itens = new[] { new { Ctrl = "Home", Icone = "bi-book", Rotulo = "Cursos" }, new { Ctrl = "Alunos", Icone = "bi-people", Rotulo = "Alunos" } } } // grupo dos cadastros: Cursos (controller Home) e Alunos
+    }; // fim dos grupos
 }
 
-@* aside: no celular é um painel fora da tela (data-open="true" o traz para dentro); no desktop é fixo. Largura, deslocamento e visibilidade ficam no site.css *@
-<aside id="sidebar" aria-label="Menu lateral" data-open="false"
-       class="fixed left-0 top-0 h-screen bg-white border-r border-slate-200 flex flex-col z-40 overflow-hidden">
+@* aside: no celular é um painel fora da tela (data-open="true" o traz para dentro); no desktop é fixo. Visual no layout.css *@
+<aside id="sidebar" aria-label="Menu lateral" data-open="false">
 
-    @* Cabeçalho: logo + botão de recolher (desktop) ou de fechar (celular) *@
-    <div class="h-20 flex items-center justify-between px-5 border-b border-slate-100 shrink-0">
-        <div class="sidebar-brand flex items-center gap-3 overflow-hidden"> @* logo; some quando a sidebar está recolhida *@
-            <i class="bi bi-mortarboard-fill text-brand text-3xl shrink-0" aria-hidden="true"></i> @* ícone de capelo (decorativo) *@
-            <span class="sidebar-label text-2xl font-bold text-brand whitespace-nowrap">PSGN</span> @* nome *@
+    @* Cabeçalho: logo + botão de fechar (só no celular) *@
+    <div class="sidebar-header">
+        <div class="sidebar-brand"> @* logo: quadrado azul com o ícone + nome; recolhida, só o quadrado *@
+            <span class="sidebar-logo" aria-hidden="true"><i class="bi bi-mortarboard-fill"></i></span> @* ícone de capelo (decorativo) *@
+            <span class="sidebar-name sidebar-label">PSGN</span> @* nome do sistema *@
         </div>
 
-        @* Desktop: recolhe/expande. O JavaScript mantém aria-expanded, aria-label e title atualizados *@
-        <button id="toggleSidebar" type="button" aria-controls="sidebar" aria-expanded="true" aria-label="Recolher menu" title="Recolher menu"
-                class="hidden lg:inline-flex @botaoIcone">
-            <i class="bi bi-list text-xl" aria-hidden="true"></i> @* ícone de "hambúrguer" *@
-        </button>
-
         @* Celular/tablet: fecha o painel *@
-        <button id="closeSidebar" type="button" aria-controls="sidebar" aria-label="Fechar menu"
-                class="lg:hidden inline-flex @botaoIcone">
-            <i class="bi bi-x-lg text-xl" aria-hidden="true"></i> @* ícone de X *@
+        <button id="closeSidebar" type="button" class="btn btn-ghost btn-icon lg:hidden" aria-controls="sidebar" aria-label="Fechar menu">
+            <i class="bi bi-x-lg" aria-hidden="true"></i> @* ícone de X *@
         </button>
     </div>
 
-    @* Navegação *@
-    <nav aria-label="Navegação principal" class="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden">
-        @foreach (var item in navItems) // um link por item do array
+    @* Navegação: um bloco por grupo *@
+    <nav class="sidebar-nav" aria-label="Navegação principal">
+        @foreach (var grupo in grupos) // um bloco por grupo
         {
-            var isActive = controller == item.Ctrl; // é a página atual?
-            <a asp-controller="@item.Ctrl" asp-action="Index"
-               title="@item.Label" aria-label="@item.Label" aria-current="@(isActive ? "page" : null)"
-               class="@navBase @(isActive ? navActive : navInactive)"> @* aria-label: com a sidebar recolhida o texto some, então o nome do link precisa estar no atributo; aria-current avisa o leitor de tela qual é a página atual *@
-                <i class="bi @item.Icon text-xl shrink-0" aria-hidden="true"></i> @* ícone do item (decorativo) *@
-                <span class="sidebar-label whitespace-nowrap">@item.Label</span> @* texto; some quando a sidebar recolhe *@
-            </a>
+            <div class="nav-group">
+                <p class="nav-group-label">@grupo.Titulo</p> @* título do grupo; recolhida, vira uma linha divisória (layout.css) *@
+                <ul class="space-y-0.5"> @* lista de itens do grupo *@
+                    @foreach (var item in grupo.Itens) // um link por item
+                    {
+                        var ativo = controller == item.Ctrl; // é a página atual?
+                        <li>
+                            @* aria-label: com a sidebar recolhida o texto some, então o nome do link precisa estar no atributo; aria-current avisa o leitor de tela qual é a página atual;
+                               data-tooltip: o ui.js mostra o nome ao lado do ícone, mas só com a sidebar recolhida *@
+                            <a asp-controller="@item.Ctrl" asp-action="Index" class="nav-link"
+                               aria-label="@item.Rotulo" aria-current="@(ativo ? "page" : null)"
+                               data-tooltip="@item.Rotulo" data-tooltip-placement="right" data-tooltip-if="sidebar-collapsed">
+                                <i class="bi @item.Icone" aria-hidden="true"></i> @* ícone do item (decorativo) *@
+                                <span class="sidebar-label">@item.Rotulo</span> @* texto; some quando a sidebar recolhe *@
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
         }
     </nav>
 
+    @* Rodapé: recolher/expandir (só no desktop; o layout.css esconde abaixo de 1024px). O sidebar.js mantém aria-expanded, aria-label e o texto atualizados *@
+    <div class="sidebar-footer">
+        <button id="toggleSidebar" type="button" class="btn btn-ghost w-full justify-start" aria-controls="sidebar" aria-expanded="true" aria-label="Recolher menu"
+                data-tooltip="Recolher menu" data-tooltip-placement="right" data-tooltip-if="sidebar-collapsed">
+            <i class="bi bi-layout-sidebar-inset" aria-hidden="true"></i> @* ícone de painel lateral *@
+            <span class="sidebar-label">Recolher menu</span> @* texto; some quando recolhida *@
+        </button>
+    </div>
 </aside>
 
 @* Overlay: fundo escuro atrás do painel aberto; clicar nele fecha. Só existe abaixo de 1024px (lg:hidden) e começa escondido (atributo hidden) *@
-<div id="sidebarOverlay" hidden class="fixed inset-0 z-30 bg-slate-900/50 lg:hidden"></div>
+<div id="sidebarOverlay" hidden class="fixed inset-0 z-30 lg:hidden"></div>

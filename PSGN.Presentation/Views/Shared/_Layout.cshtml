@@ -1,44 +1,47 @@
 ﻿<!DOCTYPE html>
-@* REVISÃO: layout atualizado. Mudanças: (1) o Tailwind deixou de vir do Play CDN e passou a ser um CSS gerado (wwwroot/css/tailwind.css), (2) entrou a barra
-   superior para abrir a sidebar no celular, (3) um link "Ir para o conteúdo" para quem navega pelo teclado, (4) o JavaScript da sidebar foi para wwwroot/js/sidebar.js *@
+@* REVISÃO: layout do redesign. Mudanças: (1) fonte Inter e ícones agora são arquivos do projeto (nenhuma dependência de CDN), (2) um único CSS compilado com os tokens
+   do design system (Styles/*.css -> wwwroot/css/tailwind.css), (3) conteúdo com largura máxima e espaçamento que cresce com a tela, (4) região de notificações (toast), (5) ui.js *@
 <html lang="pt-BR">
 <head>
     <meta charset="utf-8" /> @* codificação da página, para acentos aparecerem certos *@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /> @* faz a página respeitar a largura do celular *@
     <title>@ViewData["Title"] - PSGN</title> @* título da aba: cada view define o ViewData["Title"] *@
 
-    @* REVISÃO: Tailwind compilado (npm run css:build, dentro de PSGN.Presentation). A cor "brand" e a fonte agora ficam no tailwind.config.js. O Play CDN não é recomendado para produção *@
-    <link rel="stylesheet" href="~/css/tailwind.css" asp-append-version="true" />
+    @* Pré-carrega a fonte principal para o texto não "piscar" trocando de fonte (crossorigin é obrigatório para fontes, mesmo no mesmo domínio) *@
+    <link rel="preload" href="~/fonts/inter/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
 
-    @* Bootstrap Icons via CDN: só os ícones (bi-*) *@
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
-
-    @* CSS próprio: só a lógica da sidebar (largura, painel sobreposto, recolhida); o resto é Tailwind *@
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" /> @* ícones (bi-*) hospedados no projeto *@
+    <link rel="stylesheet" href="~/css/tailwind.css" asp-append-version="true" /> @* design system compilado (npm run css:build) *@
 
     <script>
         // Restaura o estado da sidebar no desktop (recolhida/expandida) ANTES de desenhar a página, para ela não "piscar" aberta
         try { // o localStorage pode estar bloqueado (modo privado); nesse caso a sidebar simplesmente abre expandida
             if (localStorage.getItem('sidebarCollapsed') === 'true') { // o estado é salvo pelo sidebar.js
-                document.documentElement.classList.add('sidebar-collapsed'); // a classe no <html> é o que o site.css usa (só vale a partir de 1024px)
+                document.documentElement.classList.add('sidebar-collapsed'); // a classe no <html> é o que o layout.css usa (só vale a partir de 1024px)
             } // fim do if
         } catch (e) { } // fim do try
     </script>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased"> @* fundo cinza claro, texto escuro e fonte suavizada *@
+<body> @* fundo, fonte e cor do texto vêm do components.css (base) *@
 
     @* Link de atalho: fica invisível até receber foco pelo Tab; pula a sidebar e vai direto ao conteúdo *@
-    <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-brand focus:shadow-lg">Ir para o conteúdo</a>
+    <a href="#main" class="skip-link">Ir para o conteúdo</a> @* REVISÃO: componente próprio (components.css); antes combinava sr-only com .btn e o botão aparecia sem padding *@
 
-    <partial name="_Sidebar" /> @* sidebar (Views/Shared/_Sidebar.cshtml): fixa no desktop, painel sobreposto no celular *@
-    <partial name="_Topbar" /> @* barra superior com o botão que abre a sidebar (só aparece abaixo de 1024px) *@
+    <partial name="_Sidebar" /> @* sidebar: fixa no desktop, painel sobreposto no celular *@
+    <partial name="_Topbar" /> @* barra superior com o botão que abre a sidebar (só abaixo de 1024px) *@
 
-    <main id="main" tabindex="-1" class="min-h-screen p-4 sm:p-6 lg:p-8 focus:outline-none"> @* conteúdo principal; a margem esquerda acompanha a sidebar no desktop (site.css); o espaçamento cresce com a tela; tabindex=-1 deixa o link de atalho focar aqui *@
-        @RenderBody() @* aqui entra a view de cada página *@
+    <main id="main" tabindex="-1" class="min-h-screen focus:outline-none"> @* a margem esquerda acompanha a sidebar no desktop (layout.css); tabindex=-1 deixa o link de atalho focar aqui *@
+        <div class="page px-4 py-6 sm:px-6 lg:px-8 lg:py-8"> @* conteúdo centralizado com largura máxima; o espaçamento cresce com a tela *@
+            @RenderBody() @* aqui entra a view de cada página *@
+        </div>
     </main>
+
+    @* Região das notificações temporárias (toast): o leitor de tela anuncia o que entrar aqui (aria-live) *@
+    <div id="toast-region" class="toast-region" role="region" aria-label="Notificações" aria-live="polite"></div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script> @* jQuery, mantido para a validação de formulários (_ValidationScriptsPartial) *@
     <script src="~/js/site.js" asp-append-version="true"></script> @* JavaScript geral do site *@
+    <script src="~/js/ui.js" asp-append-version="true"></script> @* tooltip, toast, botão carregando, aviso fechável *@
     <script src="~/js/sidebar.js" asp-append-version="true"></script> @* comportamento da sidebar (abrir/fechar no celular, recolher no desktop) *@
     @await RenderSectionAsync("Scripts", required: false) @* scripts específicos de cada view (ex.: os gráficos do Dashboard) *@
 </body>

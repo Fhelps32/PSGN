@@ -1,5 +1,5 @@
 // REVISÃO: arquivo novo. Antes o JavaScript da sidebar ficava inline no _Sidebar.cshtml e só sabia recolher/expandir.
-// Agora ele controla os DOIS modos da sidebar (ver site.css): painel sobreposto no celular/tablet e sidebar recolhível no desktop.
+// Agora ele controla os DOIS modos da sidebar (ver Styles/layout.css): painel sobreposto no celular/tablet e sidebar recolhível no desktop.
 (function () { // função que roda na hora e isola as variáveis, para não vazarem para o resto do site
     'use strict'; // modo estrito: o JavaScript avisa de erros bobos em vez de ignorá-los
 
@@ -9,7 +9,7 @@
     var btnAbrir = document.getElementById('openSidebar'); // botão da barra superior (só aparece abaixo de 1024px)
     var btnFechar = document.getElementById('closeSidebar'); // botão X dentro do painel (só aparece abaixo de 1024px)
     var btnRecolher = document.getElementById('toggleSidebar'); // botão de recolher/expandir (só aparece a partir de 1024px)
-    var telaGrande = window.matchMedia('(min-width: 1024px)'); // o mesmo ponto de quebra do site.css ("lg" do Tailwind)
+    var telaGrande = window.matchMedia('(min-width: 1024px)'); // o mesmo ponto de quebra do layout.css ("lg" do Tailwind)
 
     if (!sidebar) return; // página sem sidebar (ex.: uma view que use outro layout): não há nada para controlar
 
@@ -20,11 +20,11 @@
         .filter(Boolean); // descarta os que não existirem
 
     function estaAberto() { // o painel está aberto?
-        return sidebar.dataset.open === 'true'; // o estado mora no atributo data-open (o site.css reage a ele)
+        return sidebar.dataset.open === 'true'; // o estado mora no atributo data-open (o layout.css reage a ele)
     } // fim do estaAberto
 
     function abrir() { // abre o painel sobreposto (celular/tablet)
-        sidebar.dataset.open = 'true'; // o site.css traz o painel para dentro da tela
+        sidebar.dataset.open = 'true'; // o layout.css traz o painel para dentro da tela
         overlay.hidden = false; // mostra o fundo escuro
         if (btnAbrir) btnAbrir.setAttribute('aria-expanded', 'true'); // avisa o leitor de tela que o menu abriu
         inertes.forEach(function (el) { el.inert = true; }); // trava o resto da página
@@ -33,7 +33,7 @@
     } // fim do abrir
 
     function fechar(devolverFoco) { // fecha o painel sobreposto
-        sidebar.dataset.open = 'false'; // o site.css empurra o painel para fora da tela
+        sidebar.dataset.open = 'false'; // o layout.css empurra o painel para fora da tela
         overlay.hidden = true; // esconde o fundo escuro
         if (btnAbrir) btnAbrir.setAttribute('aria-expanded', 'false'); // avisa o leitor de tela que o menu fechou
         inertes.forEach(function (el) { el.inert = false; }); // libera a página de novo
@@ -60,12 +60,14 @@
 
     // ----- Desktop: recolher/expandir -----
     function aplicarRecolhida(recolhida) { // atualiza a tela e os atributos de acessibilidade do botão
-        html.classList.toggle('sidebar-collapsed', recolhida); // a classe no <html> é o que o site.css usa para estreitar a sidebar
+        html.classList.toggle('sidebar-collapsed', recolhida); // a classe no <html> é o que o layout.css usa para estreitar a sidebar
         if (!btnRecolher) return; // sem botão, nada mais a atualizar
         btnRecolher.setAttribute('aria-expanded', String(!recolhida)); // expandida = true
         var rotulo = recolhida ? 'Expandir menu' : 'Recolher menu'; // texto da ação que o botão faz AGORA
-        btnRecolher.setAttribute('aria-label', rotulo); // nome lido pelo leitor de tela
-        btnRecolher.title = rotulo; // dica ao passar o mouse
+        btnRecolher.setAttribute('aria-label', rotulo); // nome lido pelo leitor de tela (com a sidebar recolhida o texto visível some)
+        btnRecolher.dataset.tooltip = rotulo; // REVISÃO: o tooltip do ui.js (aparece só com a sidebar recolhida) acompanha a ação atual
+        var texto = btnRecolher.querySelector('.sidebar-label'); // REVISÃO: texto visível do botão (rodapé da sidebar)
+        if (texto) texto.textContent = rotulo; // REVISÃO: mantém o texto visível igual à ação atual
     } // fim do aplicarRecolhida
 
     aplicarRecolhida(html.classList.contains('sidebar-collapsed')); // sincroniza os atributos com a classe que o _Layout já aplicou antes de desenhar

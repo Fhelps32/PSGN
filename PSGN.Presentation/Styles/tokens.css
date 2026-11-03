@@ -1,0 +1,68 @@
+/* ============================================================
+   REVISÃO: tokens de design do PSGN. TODA decisão visual (cor, fonte, raio, sombra, medidas) nasce aqui e o resto do CSS só referencia.
+   Para mudar o visual do sistema, mude os valores deste arquivo e rode "npm run css:build".
+   As cores são tripletos RGB ("37 99 235") para o Tailwind conseguir aplicar transparência: bg-brand/10 vira rgb(var(--brand) / 0.1)
+   ============================================================ */
+@layer base {
+
+    /* ---------- Fonte: Inter variável, hospedada no projeto (wwwroot/fonts/inter), igual em qualquer sistema operacional ---------- */
+    @font-face {
+        font-family: "Inter"; /* nome usado em --font-sans */
+        font-style: normal; /* só o estilo normal (não usamos itálico) */
+        font-weight: 100 900; /* fonte variável: um arquivo cobre todos os pesos */
+        font-display: swap; /* mostra a fonte do sistema até a Inter carregar, sem página em branco */
+        src: url("../fonts/inter/inter-latin-wght-normal.woff2") format("woff2"); /* caminho relativo a /css/tailwind.css */
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; /* subconjunto latino: cobre todos os acentos do português */
+    }
+
+    :root {
+        /* ---------- Tipografia ---------- */
+        --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; /* se a Inter falhar, cai na fonte do sistema */
+
+        /* ---------- Superfícies e bordas ---------- */
+        --page: 246 247 249; /* fundo da página */
+        --card: 255 255 255; /* fundo de cards, sidebar e campos */
+        --line: 226 232 240; /* borda padrão (cards, divisores) */
+        --line-strong: 203 213 225; /* borda de campos e botões secundários */
+
+        /* ---------- Texto (todos com contraste mínimo de 4,5:1 sobre branco) ---------- */
+        --ink: 15 23 42; /* texto principal: títulos e dados */
+        --ink-2: 71 85 105; /* texto secundário (7,6:1) */
+        --ink-3: 87 100 122; /* texto auxiliar e placeholder: 6,0:1 sobre branco e no mínimo 5,0:1 sobre as demais superfícies do sistema (fundo da página, linha em hover, chips). O mais claro permitido */
+
+        /* ---------- Acento: o azul da marca ---------- */
+        --brand: 37 99 235; /* ação primária, item ativo, links, foco (5,2:1 sobre branco) */
+        --brand-dark: 29 78 216; /* hover da ação primária */
+        --brand-soft: 239 246 255; /* fundo suave do acento (chips, ícones) */
+
+        /* ---------- Feedback (só usados em avisos e estados, nunca como decoração) ---------- */
+        --success: 21 128 61; /* texto e borda de sucesso */
+        --success-soft: 240 253 244; /* fundo de sucesso */
+        --warning: 180 83 9; /* texto e borda de aviso */
+        --warning-soft: 255 251 235; /* fundo de aviso */
+        --danger: 185 28 28; /* texto, borda e ação destrutiva */
+        --danger-soft: 254 242 242; /* fundo de erro */
+
+        /* ---------- Forma ---------- */
+        --radius-control: 6px; /* botões, campos, itens de menu */
+        --radius-card: 12px; /* cards, tabelas, painéis, toasts */
+        --shadow-pop: 0 8px 24px rgb(15 23 42 / 0.12), 0 2px 6px rgb(15 23 42 / 0.08); /* única sombra do sistema: só para o que flutua (toast, tooltip, menus) */
+
+        /* ---------- Layout ---------- */
+        --sidebar-w: 256px; /* largura da sidebar expandida (recolhida: ver components) */
+        --content-max: 80rem; /* largura máxima do conteúdo (1280px) */
+
+        /* ---------- Gráficos: paleta categórica validada (6 cores, ordem fixa, distinguíveis por daltônicos).
+           Lida pelo dashboard.js; são hex (e não tripletos) porque o Chart.js precisa da cor pronta ---------- */
+        --chart-1: #2563eb; /* azul da marca */
+        --chart-2: #eb6834; /* laranja */
+        --chart-3: #1baf7a; /* verde-água */
+        --chart-4: #eda100; /* amarelo */
+        --chart-5: #e87ba4; /* rosa */
+        --chart-6: #008300; /* verde */
+    }
+
+    html.sidebar-collapsed {
+        --sidebar-w: 72px; /* largura recolhida (só ícones); só vale a partir de 1024px */
+    }
+}
