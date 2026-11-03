@@ -1,69 +1,67 @@
-﻿using Microsoft.AspNetCore.Mvc; // Controller, IActionResult, [HttpGet], Json
-using Microsoft.AspNetCore.Mvc.Rendering; // SelectListItem, usado nos <select> da tela
-using PSGN.Application.Servicos.Alunos; // AlunoService
-using PSGN.Application.Servicos.Cursos; // CursoService
-using PSGN.Application.Servicos.Modulos; // ModuloService
-using PSGN.Domain; // AlunoModulo
-using PSGN.Domain.Enum; // EnumSituacaoInscricao
-using PSGN.Presentation.ViewModels; // DashBoardViewModel e as classes das seções
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering; 
+using PSGN.Application.Servicos.Alunos; 
+using PSGN.Application.Servicos.Cursos; 
+using PSGN.Application.Servicos.Modulos; 
+using PSGN.Domain; 
+using PSGN.Domain.Enum; 
+using PSGN.Presentation.ViewModels;
 
-namespace PSGN.Presentation.Controllers // pasta dos controllers do MVC
+namespace PSGN.Presentation.Controllers
 {
-    // REVISÃO: controller completado com base no DashBoardController do PSG. Os services devolvem entidades do domain (ou números)
-    // e é AQUI que elas são transformadas no ViewModel, igual o HomeController faz com o HomeViewModel
-    public class DashboardController : Controller // controller da tela de Dashboard
+    public class DashboardController : Controller
     {
-        private const int MesesPadrao = 6; // quantos meses o gráfico em linha mostra ao abrir a página
-        private const double NotaMinimaAprovacao = 7.0; // nota mínima para aprovação; ASSUMIDO 7.0, troque aqui se a regra da instituição for outra
+        private const int MesesPadrao = 6; 
+        private const double NotaMinimaAprovacao = 7.0;
 
-        private readonly AlunoService _alunoService; // contagens de alunos e lista de inscrições
-        private readonly CursoService _cursoService; // lista de cursos com alunos
-        private readonly ModuloService _moduloService; // lista de módulos de um curso com alunos
+        private readonly AlunoService _alunoService; 
+        private readonly CursoService _cursoService; 
+        private readonly ModuloService _moduloService; 
 
-        public DashboardController( // o ASP.NET entrega os services pelo construtor (registrados em DependencyInjection.cs)
-            AlunoService alunoService, // parâmetro do service de alunos
-            CursoService cursoService, // parâmetro do service de cursos
-            ModuloService moduloService) // parâmetro do service de módulos
+        public DashboardController(
+            AlunoService alunoService, 
+            CursoService cursoService, 
+            ModuloService moduloService) 
         {
-            _alunoService = alunoService; // guarda para usar nas actions
-            _cursoService = cursoService; // guarda para usar nas actions
-            _moduloService = moduloService; // guarda para usar nas actions
-        } // fim do construtor
+            _alunoService = alunoService; 
+            _cursoService = cursoService;
+            _moduloService = moduloService; 
+        } 
 
-        public async Task<IActionResult> Index() // monta a página inteira na primeira abertura
+        public async Task<IActionResult> Index()
         {
-            var cursos = await _cursoService.ListarCursosComAlunosAsync(); // cursos com a coleção de alunos carregada
-            var cursosSelectList = cursos // a mesma lista de cursos alimenta os selects dos dois gráficos
+            var cursos = await _cursoService.ListarCursosComAlunosAsync();
+            var cursosSelectList = cursos
                 .Select(c => new SelectListItem { Value = c.IdCurso.ToString(), Text = c.Nome }) // value = id (vai para o AJAX), texto = nome (aparece na tela)
-                .ToList(); // fecha como lista
+                .ToList();
 
-            var lineGraphValues = new List<ValueLineGraph>(); // pontos do gráfico em linha
+            var lineGraphValues = new List<ValueLineGraph>(); 
             foreach (var mes in UltimosMeses(MesesPadrao)) // percorre os últimos 6 meses, do mais antigo para o atual
                 lineGraphValues.Add(new ValueLineGraph // cria um ponto por mês
-                { // inicializador do ponto
-                    Data = mes, // eixo X: o mês
+                {
+                    Data = mes,
                     QuantidadeAlunos = await _alunoService.ContarAlunosCadastradosNoMesAsync(mes, null) // eixo Y: alunos cadastrados no mês, de todos os cursos (null)
-                }); // fim do ponto
+                });
 
-            var lineGraphSection = new LineGraphSection // seção do gráfico em linha
-            { // inicializador da seção
+            var lineGraphSection = new LineGraphSection
+            {
                 ValueLineGraph = lineGraphValues, // os pontos calculados acima
                 Tempo = new List<SelectListItem> // opções do select de período
-                { // as mesmas opções do PSG
+                { 
                     new() { Value = "6", Text = "Últimos 6 meses", Selected = true }, // padrão ao abrir
-                    new() { Value = "12", Text = "Últimos 12 meses" }, // um ano
-                    new() { Value = "24", Text = "Últimos 24 meses" } // dois anos
-                }, // fim das opções de período
+                    new() { Value = "12", Text = "Últimos 12 meses" },
+                    new() { Value = "24", Text = "Últimos 24 meses" }
+                },
                 Cursos = cursosSelectList // opções do select de curso
-            }; // fim da seção do gráfico em linha
+            };
 
-            var sectorGraphSection = new SectorGraphSection // seção do gráfico de pizza
-            { // inicializador da seção
-                ValueSectorGraph = cursos // uma fatia por curso ao abrir a página
-                    .Select(c => new ValueSectorGraph { Curso = c.Nome, QuantidadeAlunos = c.Alunos.Count }) // tamanho da fatia = alunos do curso
-                    .ToList(), // fecha como lista
-                Cursos = cursosSelectList // opções do select de curso da pizza
-            }; // fim da seção do gráfico de pizza
+            var sectorGraphSection = new SectorGraphSection
+            {
+                ValueSectorGraph = cursos
+                    .Select(c => new ValueSectorGraph { Curso = c.Nome, QuantidadeAlunos = c.Alunos.Count })
+                    .ToList(),
+                Cursos = cursosSelectList
+            };
 
             var inscricoes = await _alunoService.ListarInscricoesAsync(); // todas as inscrições (aluno x módulo) com aluno, módulo, curso e tentativas
             var situacaoInscricoes = MontarSituacaoPorCurso(inscricoes); // aprovados/em andamento/reprovados/cancelados por curso

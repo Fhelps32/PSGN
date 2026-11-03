@@ -5,8 +5,10 @@
     var navItems = new[] // itens do menu num array, para não repetir o HTML de cada link
     {
         new { Ctrl = "Dashboard", Icon = "bi-grid", Label = "Dashboard" }, // tela de dashboard
-        new { Ctrl = "Home",      Icon = "bi-book", Label = "Cursos" } // tela inicial, que lista os cursos e tem o botão de sincronizar
+        new { Ctrl = "Home",      Icon = "bi-book", Label = "Cursos" } ,// tela inicial, que lista os cursos e tem o botão de sincronizar
+        new { Ctrl = "Alunos",    Icon = "bi-people", Label = "Alunos" } // tela de alunos
     }; // fim dos itens
+
 
     const string navBase = "nav-link flex items-center gap-4 px-4 py-3 rounded-xl transition-colors"; // classes de todo link
     const string navInactive = "text-slate-600 hover:bg-brand-light hover:text-brand"; // classes do link que NÃO é a página atual

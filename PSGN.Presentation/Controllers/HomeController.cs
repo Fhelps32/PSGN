@@ -1,12 +1,12 @@
-using Microsoft.AspNetCore.Mvc; // Controller, IActionResult, [HttpPost], [ValidateAntiForgeryToken]
-using PSGN.Application.Servicos.Cursos; // CursoService
-using PSGN.Application.Servicos.Sincronizacao; // SincronizacaoService
-using PSGN.Presentation.ViewModels; // HomeViewModel, CursoItem, ModuloItem, ErrorViewModel
-using System.Diagnostics; // Activity, usado na action Error
+using Microsoft.AspNetCore.Mvc;
+using PSGN.Application.Servicos.Cursos;
+using PSGN.Application.Servicos.Sincronizacao;
+using PSGN.Presentation.ViewModels;
+using System.Diagnostics;
 
-namespace PSGN.Presentation.Controllers // pasta dos controllers do MVC
+namespace PSGN.Presentation.Controllers
 {
-    public class HomeController : Controller // controller da página inicial
+    public class HomeController : Controller
     {
         private readonly CursoService _cursoService; // usado para LER os cursos que aparecem na tela
         private readonly SincronizacaoService _sincronizacaoService; // usado pelo botão "Sincronizar"
@@ -36,7 +36,7 @@ namespace PSGN.Presentation.Controllers // pasta dos controllers do MVC
                     Coordenador = curso.Coordenador.Nome, // nome do coordenador
                     Modulos = curso.Modulos // parte da lista de módulos do curso
                         .OrderBy(modulo => modulo.Nome) // ordena alfabeticamente
-                        .Select(modulo => new ModuloItem { Nome = modulo.Nome, IdMoodle = modulo.IdMoodle }) // converte cada Modulo em ModuloItem, mostrando o id do Moodle (não o id do nosso banco)
+                        .Select(modulo => new ModulosItem { Nome = modulo.Nome, IdMoodle = modulo.IdMoodle }) // converte cada Modulo em ModuloItem, mostrando o id do Moodle (não o id do nosso banco)
                         .ToList() // fecha como lista
                 }).ToList() // fim do CursoItem e da lista de cursos
             }; // fim do HomeViewModel

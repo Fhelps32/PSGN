@@ -48,8 +48,6 @@ namespace PSGN.Presentation.ViewModels
         public string Nome { get; set; } = string.Empty;
         public string Curso { get; set; } = string.Empty;
         public string Modulo { get; set; } = string.Empty;
-        // REVISÃO: virou DateTime? porque o domain do PSGN ainda não guarda QUANDO a inscrição foi cancelada (só o Status).
-        // Quando essa data existir (provavelmente vinda do NSG), é só preencher; a view mostra "Data não registrada" enquanto for null
         public DateTime? DataCancelamento { get; set; }
     }
     public class SituacaoInscricoesItem
