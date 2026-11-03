@@ -4,14 +4,13 @@
 // importado em todas as views pelo _ViewImports.cshtml
 namespace PSGN.Presentation.ViewModels
 {
-    public class DashBoardViewModel
+    // REVISÃO: removidos deste ViewModel, a pedido do usuário, tudo o que dependia da antiga situação das inscrições:
+    // AlunosCancelados (AlunoCanceladoItem), SituacaoInscricoes (SituacaoInscricoesItem), CursoMaiorCancelamento e CursoMaiorReprovacao (CursoImportanciaItem).
+    // Os "alunos cancelados" voltam a ser tratados no futuro, quando o domain guardar o cancelamento e a data dele.
+    public class DashboardViewModel // REVISÃO: era "DashBoardViewModel" (B maiúsculo), diferente do nome do arquivo e do controller; agora todos usam "Dashboard"
     {
         public LineGraphSection LineGraphSection { get; set; } = new LineGraphSection();
         public SectorGraphSection SectorGraphSection { get; set; } = new SectorGraphSection();
-        public List<AlunoCanceladoItem> AlunosCancelados { get; set; } = new List<AlunoCanceladoItem>();
-        public List<SituacaoInscricoesItem> SituacaoInscricoes { get; set; } = new List<SituacaoInscricoesItem>();
-        public CursoImportanciaItem? CursoMaiorCancelamento { get; set; }
-        public CursoImportanciaItem? CursoMaiorReprovacao { get; set; }
         public int TotalAlunos { get; set; }
         public int TotalCursos { get; set; }
     }
@@ -41,30 +40,5 @@ namespace PSGN.Presentation.ViewModels
         public int QuantidadeAlunos { get; set; }
         public string Curso { get; set; } = string.Empty;
         public string? Modulo { get; set; }
-    }
-
-    public class AlunoCanceladoItem
-    {
-        public string Nome { get; set; } = string.Empty;
-        public string Curso { get; set; } = string.Empty;
-        public string Modulo { get; set; } = string.Empty;
-        public DateTime? DataCancelamento { get; set; }
-    }
-    public class SituacaoInscricoesItem
-    {
-        public string Curso { get; set; } = string.Empty;
-        public int Aprovados { get; set; }
-        public int EmAndamento { get; set; }
-        public int Reprovados { get; set; }
-        public int Cancelados { get; set; }
-        public int Total => Aprovados + EmAndamento + Reprovados + Cancelados;
-    }
-
-    public class CursoImportanciaItem
-    {
-        public string Curso { get; set; } = string.Empty;
-        public int Taxa { get; set; }
-        public int QuantidadeAlunosImportancia { get; set; }
-        public int QuantidadeAlunosTotal { get; set; }
     }
 }

@@ -3,16 +3,14 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using PSGN.Application.Servicos.Alunos; 
 using PSGN.Application.Servicos.Cursos; 
 using PSGN.Application.Servicos.Modulos; 
-using PSGN.Domain; 
-using PSGN.Domain.Enum; 
-using PSGN.Presentation.ViewModels;
+using PSGN.Presentation.ViewModels; // REVISÃO: saíram os "using PSGN.Domain" e "PSGN.Domain.Enum", que só serviam à situação das inscrições
 
 namespace PSGN.Presentation.Controllers
 {
     public class DashboardController : Controller
     {
-        private const int MesesPadrao = 6; 
-        private const double NotaMinimaAprovacao = 7.0;
+        private const int MesesPadrao = 6;
+        // REVISÃO: removida a constante NotaMinimaAprovacao (7.0 assumido), que só existia para classificar aprovado/reprovado
 
         private readonly AlunoService _alunoService; 
         private readonly CursoService _cursoService; 
@@ -63,28 +61,14 @@ namespace PSGN.Presentation.Controllers
                 Cursos = cursosSelectList
             };
 
-            var inscricoes = await _alunoService.ListarInscricoesAsync(); // todas as inscrições (aluno x módulo) com aluno, módulo, curso e tentativas
-            var situacaoInscricoes = MontarSituacaoPorCurso(inscricoes); // aprovados/em andamento/reprovados/cancelados por curso
-
-            var viewModel = new DashBoardViewModel // objeto que a View vai exibir
+            // REVISÃO: removidas daqui a busca das inscrições e tudo o que era calculado a partir delas (situação por curso, cursos de maior
+            // cancelamento/reprovação e lista de alunos cancelados): a antiga situação das inscrições não existe mais no PSGN
+            var viewModel = new DashboardViewModel // REVISÃO: nome da classe corrigido (era DashBoardViewModel); objeto que a View vai exibir
             { // inicializador do ViewModel
                 TotalAlunos = await _alunoService.ContarAlunosAsync(), // card "Total de Alunos" (pessoas distintas)
                 TotalCursos = cursos.Count, // card "Total de Cursos" (a lista já está na memória, não precisa ir ao banco de novo)
                 LineGraphSection = lineGraphSection, // gráfico em linha
-                SectorGraphSection = sectorGraphSection, // gráfico de pizza
-                SituacaoInscricoes = situacaoInscricoes, // tabela de situação por curso
-                CursoMaiorCancelamento = MaiorTaxa(situacaoInscricoes, s => s.Cancelados), // destaque: curso com maior % de cancelados
-                CursoMaiorReprovacao = MaiorTaxa(situacaoInscricoes, s => s.Reprovados), // destaque: curso com maior % de reprovados
-                AlunosCancelados = inscricoes // lista "Alunos Cancelados Recentemente"
-                    .Where(i => i.ObterSituacao(NotaMinimaAprovacao) == EnumSituacaoInscricao.Cancelado) // só as inscrições canceladas
-                    .Select(i => new AlunoCanceladoItem // converte cada inscrição em um item da tela
-                    { // inicializador do item
-                        Nome = i.Aluno.Usuario.Nome, // nome do aluno
-                        Curso = i.Modulo.Curso.Nome, // nome do curso
-                        Modulo = i.Modulo.Nome, // nome do módulo
-                        DataCancelamento = null // o domain ainda não guarda a data do cancelamento (ver comentário no ViewModel)
-                    }) // fim do item
-                    .ToList() // fecha como lista
+                SectorGraphSection = sectorGraphSection // gráfico de pizza
             }; // fim do ViewModel
             return View(viewModel); // entrega o ViewModel à View Dashboard/Index
         } // fim da action Index
@@ -133,44 +117,6 @@ namespace PSGN.Presentation.Controllers
             for (var i = quantidade - 1; i >= 0; i--) // conta de trás para frente, para o mais antigo sair primeiro
                 yield return mesAtual.AddMonths(-i); // devolve um mês por vez (yield = vai entregando sem montar lista)
         } // fim do UltimosMeses
-
-        private static List<SituacaoInscricoesItem> MontarSituacaoPorCurso(List<AlunoModulo> inscricoes) // agrupa as inscrições por curso e conta cada situação
-        {
-            return inscricoes // parte de todas as inscrições
-                .GroupBy(i => i.Modulo.Curso.Nome) // um grupo por curso
-                .Select(grupo => // transforma cada grupo em uma linha da tabela
-                { // corpo do Select
-                    var situacoes = grupo.Select(i => i.ObterSituacao(NotaMinimaAprovacao)).ToList(); // calcula a situação de cada inscrição UMA vez (regra fica no domain)
-                    return new SituacaoInscricoesItem // linha da tabela
-                    { // inicializador da linha
-                        Curso = grupo.Key, // nome do curso (a chave do grupo)
-                        Aprovados = situacoes.Count(s => s == EnumSituacaoInscricao.Aprovado), // quantos aprovados
-                        EmAndamento = situacoes.Count(s => s == EnumSituacaoInscricao.EmAndamento), // quantos em andamento
-                        Reprovados = situacoes.Count(s => s == EnumSituacaoInscricao.Reprovado), // quantos reprovados
-                        Cancelados = situacoes.Count(s => s == EnumSituacaoInscricao.Cancelado) // quantos cancelados
-                    }; // fim da linha (o Total é calculado sozinho no ViewModel)
-                }) // fim do Select
-                .OrderBy(s => s.Curso) // ordena pelo nome do curso
-                .ToList(); // fecha como lista
-        } // fim do MontarSituacaoPorCurso
-
-        private static CursoImportanciaItem? MaiorTaxa(List<SituacaoInscricoesItem> situacoes, Func<SituacaoInscricoesItem, int> quantidade) // acha o curso com a maior % de uma situação (cancelados ou reprovados)
-        {
-            var maior = situacoes // parte da tabela de situação
-                .Where(s => s.Total > 0 && quantidade(s) > 0) // ignora curso sem inscrição (divisão por zero) e curso sem nenhum caso
-                .OrderByDescending(s => (double)quantidade(s) / s.Total) // ordena pela proporção, da maior para a menor
-                .FirstOrDefault(); // pega a primeira (maior) ou null se nenhum curso tiver casos
-
-            if (maior is null) // nenhum curso com casos
-                return null; // a view mostra "Sem dados disponíveis"
-
-            return new CursoImportanciaItem // monta o destaque
-            { // inicializador do destaque
-                Curso = maior.Curso, // nome do curso
-                Taxa = (int)Math.Round(100.0 * quantidade(maior) / maior.Total), // porcentagem arredondada
-                QuantidadeAlunosImportancia = quantidade(maior), // quantos cancelados/reprovados
-                QuantidadeAlunosTotal = maior.Total // de quantas inscrições no total
-            }; // fim do destaque
-        } // fim do MaiorTaxa
+        // REVISÃO: removidos MontarSituacaoPorCurso e MaiorTaxa, que só existiam para a antiga situação das inscrições
     } // fim da classe
 } // fim do namespace
