@@ -3,6 +3,7 @@
     public class HomeViewModel
     {
         public string? MensagemSincronizacao { get; set; } //REVISÃO: resumo exibido depois de clicar em "Sincronizar"
+        public string? ErroSincronizacao { get; set; } //REVISÃO: aviso de falha de conexão com o Moodle/NSG, exibido em vermelho no lugar do resumo
         public ICollection<CursoItem> Cursos { get; set; } = new List<CursoItem>();
     }
 

@@ -1,53 +1,56 @@
 ﻿@model PSGN.Presentation.ViewModels.HomeViewModel
-@* REVISÃO: página refeita com Tailwind (o Bootstrap saiu do layout). O conteúdo é o mesmo: botão de sincronizar + lista de cursos e módulos *@
+@* REVISÃO: página refeita com Tailwind (o Bootstrap saiu do layout). Nesta rodada: usa as partials _PageHeader e _EmptyState, mostra o erro de sincronização e ficou responsiva *@
 @{
-    ViewData["Title"] = "Cursos"; // título da aba
+    ViewData["Title"] = "Cursos"; // título da aba e da página
+    ViewData["Subtitle"] = "Cursos e módulos sincronizados com o Moodle e o NSG"; // subtítulo (lido pela partial _PageHeader)
 }
 
 @* ===== Cabeçalho da página ===== *@
 <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-    <div>
-        <h1 class="text-3xl font-bold text-slate-800">Cursos</h1> @* título *@
-        <p class="text-slate-500 text-sm mt-1">Cursos e módulos sincronizados com o Moodle e o NSG</p> @* subtítulo *@
-    </div>
+    <partial name="_PageHeader" /> @* título + subtítulo *@
 
     @* Botão de sincronizar: POST com token antifalsificação (o tag helper asp-action coloca o token sozinho) *@
     <form asp-action="Sincronizar" method="post">
         <button type="submit"
-                class="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-colors">
-            <i class="bi bi-arrow-repeat"></i> @* ícone de sincronizar *@
+                class="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2">
+            <i class="bi bi-arrow-repeat" aria-hidden="true"></i> @* ícone de sincronizar *@
             Sincronizar com Moodle e NSG
         </button>
     </form>
 </div>
 
-@* Aviso deixado pela action Sincronizar (TempData) *@
+@* Aviso de sucesso deixado pela action Sincronizar (TempData). role="status" faz o leitor de tela anunciar o texto *@
 @if (Model.MensagemSincronizacao is not null)
 {
-    <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-        <i class="bi bi-check-circle mr-1"></i>@Model.MensagemSincronizacao
+    <div role="status" class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <i class="bi bi-check-circle mr-1" aria-hidden="true"></i>@Model.MensagemSincronizacao
+    </div>
+}
+
+@* REVISÃO: aviso de erro deixado pela action Sincronizar quando o Moodle/NSG não respondeu. role="alert" faz o leitor de tela anunciar na hora *@
+@if (Model.ErroSincronizacao is not null)
+{
+    <div role="alert" class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 break-words">
+        <i class="bi bi-exclamation-triangle mr-1" aria-hidden="true"></i>@Model.ErroSincronizacao
     </div>
 }
 
 @* Nenhum curso no banco ainda *@
 @if (Model.Cursos.Count == 0)
 {
-    <div class="text-center text-slate-400 py-16">
-        <i class="bi bi-inbox text-4xl block mb-2"></i>
-        <span class="text-sm">Nenhum curso cadastrado ainda. Clique em "Sincronizar".</span>
-    </div>
+    <partial name="_EmptyState" model='"Nenhum curso cadastrado ainda. Clique em Sincronizar."' />
 }
 
 @* Um card por curso, em grade responsiva *@
 <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
     @foreach (var curso in Model.Cursos) // percorre os cursos do ViewModel
     {
-        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="min-w-0 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
             @* Cabeçalho do card: nome, coordenador e quantidade de módulos *@
             <div class="px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-3">
-                <div>
-                    <h2 class="text-base font-bold text-slate-800">@curso.Nome</h2> @* nome do curso *@
-                    <p class="text-xs text-slate-500 mt-0.5"><i class="bi bi-person mr-1"></i>@curso.Coordenador</p> @* coordenador *@
+                <div class="min-w-0">
+                    <h2 class="text-base font-bold text-slate-800 break-words">@curso.Nome</h2> @* nome do curso *@
+                    <p class="text-xs text-slate-500 mt-0.5"><i class="bi bi-person mr-1" aria-hidden="true"></i>@curso.Coordenador</p> @* coordenador *@
                 </div>
                 <span class="shrink-0 bg-brand-light text-brand px-2.5 py-1 rounded-lg text-xs font-semibold">
                     @curso.Modulos.Count módulos @* deixa fácil ver curso que ficou sem módulo *@
@@ -58,7 +61,7 @@
                 @foreach (var modulo in curso.Modulos) // percorre os módulos do curso
                 {
                     <li class="px-6 py-2.5 flex items-center justify-between gap-3 text-sm">
-                        <span class="text-slate-700">@modulo.Nome</span> @* nome do módulo *@
+                        <span class="text-slate-700 min-w-0 break-words">@modulo.Nome</span> @* nome do módulo *@
                         <span class="shrink-0 text-xs text-slate-400">Moodle #@modulo.IdMoodle</span> @* id do módulo no Moodle *@
                     </li>
                 }

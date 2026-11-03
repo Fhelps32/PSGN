@@ -30,6 +30,7 @@ namespace PSGN.Presentation.Controllers
             var viewModel = new HomeViewModel // monta o objeto que a View (Razor) vai exibir
             { // inicializador de objeto
                 MensagemSincronizacao = TempData["MensagemSincronizacao"] as string, // pega o aviso deixado pela action Sincronizar (null se não houver)
+                ErroSincronizacao = TempData["ErroSincronizacao"] as string, // REVISÃO: pega o aviso de erro deixado pela action Sincronizar (null se não houver)
                 Cursos = cursos.Select(curso => new CursoItem // converte cada Curso do domain em um CursoItem da tela
                 { // inicializador do CursoItem
                     Nome = curso.Nome, // nome do curso
@@ -47,10 +48,21 @@ namespace PSGN.Presentation.Controllers
         [ValidateAntiForgeryToken] // exige o token do formulário, impedindo que outro site dispare este POST
         public async Task<IActionResult> Sincronizar() // action chamada pelo botão "Sincronizar"
         {
-            // REVISÃO: o service agora devolve List<Curso> (domain), então a mensagem usa a quantidade de cursos sincronizados
-            var cursos = await _sincronizacaoService.SincronizarTudoAsync("EAD", 3); // roda cursos -> módulos -> alunos -> tentativas, usando a categoria raiz "EAD" e profundidade 3
+            // REVISÃO: antes, qualquer falha de conexão (ex.: o erro de SSL do Moodle) estourava como página de exceção com stack trace.
+            // Agora as falhas de REDE (Moodle ou NSG fora do ar, certificado inválido, tempo esgotado) viram um aviso na tela e vão para o log
+            try // tenta sincronizar
+            {
+                // REVISÃO: o service agora devolve List<Curso> (domain), então a mensagem usa a quantidade de cursos sincronizados
+                var cursos = await _sincronizacaoService.SincronizarTudoAsync("EAD", 3); // roda cursos -> módulos -> alunos -> tentativas, usando a categoria raiz "EAD" e profundidade 3
 
-            TempData["MensagemSincronizacao"] = $"Sincronização concluída: {cursos.Count} curso(s) sincronizado(s) (módulos, alunos e tentativas incluídos)."; // TempData sobrevive ao redirect, então o Index consegue mostrar o aviso
+                TempData["MensagemSincronizacao"] = $"Sincronização concluída: {cursos.Count} curso(s) sincronizado(s) (módulos, alunos e tentativas incluídos)."; // TempData sobrevive ao redirect, então o Index consegue mostrar o aviso
+            } // fim do try
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException) // HttpRequestException = não conectou/SSL/HTTP com erro; TaskCanceledException = tempo esgotado. Erros de lógica continuam estourando de propósito
+            {
+                _logger.LogError(ex, "Falha de conexão ao sincronizar com o Moodle/NSG."); // registra o erro completo no log (o _logger estava injetado e sem uso)
+                var detalhe = ex.InnerException?.Message ?? ex.Message; // a causa real costuma estar na exceção interna (ex.: "The remote certificate is invalid...")
+                TempData["ErroSincronizacao"] = $"Não foi possível conectar ao Moodle ou ao NSG. Tente novamente em alguns minutos. Detalhe técnico: {detalhe}"; // aviso que a Index mostra em vermelho
+            } // fim do catch
 
             return RedirectToAction(nameof(Index)); // redireciona para o Index (Post/Redirect/Get): um F5 depois não sincroniza de novo
         } // fim da action Sincronizar
