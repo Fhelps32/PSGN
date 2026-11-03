@@ -1,0 +1,18 @@
+@model AlertaViewModel
+@* REVISÃO: partial nova. Aviso fixo na página, com ícone, texto e botão de fechar (tratado pelo ui.js). Erro usa role="alert" (anunciado na hora); os demais, role="status" *@
+@{
+    var icone = Model.Tipo switch // ícone de cada tipo
+    {
+        "danger" => "bi-exclamation-octagon", // erro
+        "warning" => "bi-exclamation-triangle", // atenção
+        _ => "bi-check-circle" // sucesso
+    }; // fim do switch
+}
+<div role="@(Model.Tipo == "danger" ? "alert" : "status")" class="alert alert-@Model.Tipo">
+    <i class="bi @icone mt-0.5 shrink-0" aria-hidden="true"></i> @* ícone do tipo (decorativo) *@
+    <p class="min-w-0 break-words">@Model.Mensagem</p> @* texto; quebra em palavras muito longas (ex.: detalhe técnico de erro) *@
+    @if (Model.Fechavel) @* botão de fechar é opcional *@
+    {
+        <button type="button" class="alert-close" data-dismiss="alert" aria-label="Fechar aviso"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+    }
+</div>

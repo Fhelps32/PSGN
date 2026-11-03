@@ -1,26 +1,21 @@
 ﻿@model ErrorViewModel
-@* REVISÃO: as classes "text-danger" eram do Bootstrap, que saiu do layout, então o título aparecia sem cor. Trocadas por classes do Tailwind; o texto continua o do template *@
+@* REVISÃO: página de erro no padrão do redesign e em português (era o texto do template, em inglês, com orientações para desenvolvedor que um usuário não deve ver).
+   Mostra o que aconteceu, o identificador da requisição (para quem for pedir suporte) e o caminho de volta *@
 @{
-    ViewData["Title"] = "Error";
+    ViewData["Title"] = "Erro"; // título da aba
 }
 
-<h1 class="text-3xl font-bold text-red-600">Error.</h1>
-<h2 class="text-xl font-semibold text-red-600 mt-1">An error occurred while processing your request.</h2>
+<div class="card mx-auto mt-8 max-w-xl">
+    <div class="empty">
+        <span class="empty-icon !bg-danger-soft !text-danger" aria-hidden="true"><i class="bi bi-exclamation-octagon"></i></span> @* ícone de erro (decorativo) *@
+        <h1 class="empty-title text-lg">Algo deu errado</h1> @* o que aconteceu *@
+        <p class="empty-desc">Não foi possível concluir a solicitação. Tente novamente; se o problema continuar, informe o identificador abaixo a quem cuida do sistema.</p> @* o que fazer *@
 
-@if (Model.ShowRequestId)
-{
-    <p class="mt-4">
-        <strong>Request ID:</strong> <code>@Model.RequestId</code>
-    </p>
-}
+        @if (Model.ShowRequestId) @* o identificador só aparece quando existe *@
+        {
+            <p class="mt-4 text-xs text-ink-soft">Identificador da requisição: <code class="rounded bg-ink/5 px-1.5 py-0.5 font-mono text-ink">@Model.RequestId</code></p>
+        }
 
-<h3 class="text-lg font-semibold mt-6">Development Mode</h3>
-<p class="mt-2">
-    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
-</p>
-<p class="mt-2">
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+        <a asp-controller="Dashboard" asp-action="Index" class="btn btn-primary mt-6">Voltar ao Dashboard</a> @* caminho de volta *@
+    </div>
+</div>

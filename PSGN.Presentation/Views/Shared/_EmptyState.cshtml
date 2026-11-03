@@ -1,6 +1,11 @@
-@model string
-@* REVISÃO: partial nova. O bloco "ícone de caixa vazia + mensagem" se repetia nas views. Uso: <partial name="_EmptyState" model='"Nenhum aluno encontrado."' /> *@
-<div class="text-center text-slate-400 py-12">
-    <i class="bi bi-inbox text-4xl block mb-2" aria-hidden="true"></i> @* ícone decorativo *@
-    <span class="text-sm">@Model</span> @* mensagem recebida da view *@
+@model EstadoVazioViewModel
+@* REVISÃO: partial atualizada. Antes recebia só um texto; agora segue o padrão do design system: ícone, título (o que aconteceu) e descrição (o que fazer).
+   Uso: <partial name="_EmptyState" model='new EstadoVazioViewModel { Icone = "bi-people", Titulo = "...", Descricao = "..." }' />. Ações extras (botão) vão numa <div> logo após a partial *@
+<div class="empty">
+    <span class="empty-icon" aria-hidden="true"><i class="bi @Model.Icone"></i></span> @* ícone decorativo num círculo suave *@
+    <p class="empty-title">@Model.Titulo</p> @* o que aconteceu *@
+    @if (!string.IsNullOrEmpty(Model.Descricao)) @* a descrição é opcional *@
+    {
+        <p class="empty-desc">@Model.Descricao</p> @* o que fazer a seguir *@
+    }
 </div>

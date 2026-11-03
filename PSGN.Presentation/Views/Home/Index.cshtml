@@ -1,71 +1,75 @@
 ﻿@model PSGN.Presentation.ViewModels.HomeViewModel
-@* REVISÃO: página refeita com Tailwind (o Bootstrap saiu do layout). Nesta rodada: usa as partials _PageHeader e _EmptyState, mostra o erro de sincronização e ficou responsiva *@
+@* REVISÃO: tela de Cursos no padrão do redesign. Mudanças: (1) a lista de módulos de cada curso agora abre e fecha (<details>), em vez de uma rolagem dentro da página;
+   (2) o resultado da sincronização vira toast (sucesso) ou aviso fixo (erro, que não deve sumir sozinho); (3) o botão Sincronizar mostra "Sincronizando…" e não aceita um segundo clique;
+   (4) o "Moodle #id", dado técnico, perde destaque *@
 @{
     ViewData["Title"] = "Cursos"; // título da aba e da página
+    ViewData["Section"] = "Acadêmico"; // grupo da sidebar (lido pela partial _PageHeader)
     ViewData["Subtitle"] = "Cursos e módulos sincronizados com o Moodle e o NSG"; // subtítulo (lido pela partial _PageHeader)
 }
 
-@* ===== Cabeçalho da página ===== *@
-<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-    <partial name="_PageHeader" /> @* título + subtítulo *@
-
-    @* Botão de sincronizar: POST com token antifalsificação (o tag helper asp-action coloca o token sozinho) *@
-    <form asp-action="Sincronizar" method="post">
-        <button type="submit"
-                class="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2">
-            <i class="bi bi-arrow-repeat" aria-hidden="true"></i> @* ícone de sincronizar *@
-            Sincronizar com Moodle e NSG
-        </button>
-    </form>
+@* ===== Cabeçalho da página: título à esquerda e a ação principal à direita ===== *@
+<div class="page-header">
+    <partial name="_PageHeader" /> @* grupo + título + subtítulo *@
+    <div class="page-actions">
+        @* POST com token antifalsificação (o tag helper asp-action coloca o token sozinho). data-loading liga o estado "carregando" do ui.js *@
+        <form asp-action="Sincronizar" method="post" data-loading>
+            <button type="submit" class="btn btn-primary" data-loading-text="Sincronizando…">
+                <i class="bi bi-arrow-repeat" aria-hidden="true"></i> @* ícone de sincronizar (o spinner o substitui enquanto carrega) *@
+                <span data-loading-label>Sincronizar com Moodle e NSG</span>
+            </button>
+        </form>
+    </div>
 </div>
 
-@* Aviso de sucesso deixado pela action Sincronizar (TempData). role="status" faz o leitor de tela anunciar o texto *@
+@* Resultado de sucesso deixado pela action Sincronizar (TempData): o ui.js transforma o <template> em um toast que some sozinho *@
 @if (Model.MensagemSincronizacao is not null)
 {
-    <div role="status" class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-        <i class="bi bi-check-circle mr-1" aria-hidden="true"></i>@Model.MensagemSincronizacao
-    </div>
+    <template data-toast="success">@Model.MensagemSincronizacao</template>
 }
 
-@* REVISÃO: aviso de erro deixado pela action Sincronizar quando o Moodle/NSG não respondeu. role="alert" faz o leitor de tela anunciar na hora *@
+@* Erro de conexão deixado pela action Sincronizar: aviso fixo, porque o usuário precisa ler o motivo e tentar de novo *@
 @if (Model.ErroSincronizacao is not null)
 {
-    <div role="alert" class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 break-words">
-        <i class="bi bi-exclamation-triangle mr-1" aria-hidden="true"></i>@Model.ErroSincronizacao
-    </div>
+    <div class="mb-6"><partial name="_Alert" model='new AlertaViewModel { Tipo = "danger", Mensagem = Model.ErroSincronizacao }' /></div>
 }
 
-@* Nenhum curso no banco ainda *@
 @if (Model.Cursos.Count == 0)
 {
-    <partial name="_EmptyState" model='"Nenhum curso cadastrado ainda. Clique em Sincronizar."' />
+    @* Nenhum curso no banco ainda: o botão de sincronizar já está no cabeçalho *@
+    <div class="card">
+        <partial name="_EmptyState" model='new EstadoVazioViewModel { Icone = "bi-book", Titulo = "Nenhum curso sincronizado", Descricao = "Use Sincronizar com Moodle e NSG, no topo da página, para trazer os cursos e os módulos." }' />
+    </div>
 }
+else
+{
+    <p class="mb-3 text-sm text-ink-soft"><span class="font-medium tabular-nums text-ink">@Model.Cursos.Count</span> @(Model.Cursos.Count == 1 ? "curso" : "cursos"). Abra um curso para ver os módulos.</p>
 
-@* Um card por curso, em grade responsiva *@
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-    @foreach (var curso in Model.Cursos) // percorre os cursos do ViewModel
-    {
-        <div class="min-w-0 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-            @* Cabeçalho do card: nome, coordenador e quantidade de módulos *@
-            <div class="px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                    <h2 class="text-base font-bold text-slate-800 break-words">@curso.Nome</h2> @* nome do curso *@
-                    <p class="text-xs text-slate-500 mt-0.5"><i class="bi bi-person mr-1" aria-hidden="true"></i>@curso.Coordenador</p> @* coordenador *@
-                </div>
-                <span class="shrink-0 bg-brand-light text-brand px-2.5 py-1 rounded-lg text-xs font-semibold">
-                    @curso.Modulos.Count módulos @* deixa fácil ver curso que ficou sem módulo *@
-                </span>
-            </div>
-            @* Lista de módulos do curso *@
-            <ul class="divide-y divide-slate-100 max-h-72 overflow-y-auto">
-                @foreach (var modulo in curso.Modulos) // percorre os módulos do curso
-                {
-                    <li class="px-6 py-2.5 flex items-center justify-between gap-3 text-sm">
-                        <span class="text-slate-700 min-w-0 break-words">@modulo.Nome</span> @* nome do módulo *@
-                        <span class="shrink-0 text-xs text-slate-400">Moodle #@modulo.IdMoodle</span> @* id do módulo no Moodle *@
-                    </li>
-                }
-            </ul>
-        </div>
-    }
-</div>
+    @* Um bloco por curso; <details> abre e fecha sem JavaScript e já é acessível pelo teclado *@
+    <div class="space-y-3">
+        @foreach (var curso in Model.Cursos) // percorre os cursos do ViewModel
+        {
+            <details class="card group">
+                <summary class="flex cursor-pointer list-none items-center gap-3 rounded-card px-5 py-4 hover:bg-ink/[0.02] [&::-webkit-details-marker]:hidden"> @* a linha toda é clicável; some o triângulo padrão do navegador *@
+                    <i class="bi bi-chevron-right text-ink-muted transition-transform group-open:rotate-90" aria-hidden="true"></i> @* seta que gira quando aberto *@
+                    <div class="min-w-0 flex-1">
+                        <h2 class="break-words text-base font-semibold text-ink">@curso.Nome</h2> @* nome do curso *@
+                        <p class="mt-0.5 text-xs text-ink-soft"><i class="bi bi-person mr-1" aria-hidden="true"></i>@curso.Coordenador</p> @* coordenador *@
+                    </div>
+                    <span class="badge shrink-0 tabular-nums">@curso.Modulos.Count @(curso.Modulos.Count == 1 ? "módulo" : "módulos")</span> @* deixa fácil ver curso que ficou sem módulo *@
+                </summary>
+
+                @* Lista de módulos do curso *@
+                <ul class="divide-y divide-line border-t border-line">
+                    @foreach (var modulo in curso.Modulos) // percorre os módulos do curso
+                    {
+                        <li class="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
+                            <span class="min-w-0 break-words text-ink">@modulo.Nome</span> @* nome do módulo *@
+                            <span class="shrink-0 text-xs tabular-nums text-ink-muted" title="Identificador do módulo no Moodle">Moodle #@modulo.IdMoodle</span> @* dado técnico: pequeno e discreto *@
+                        </li>
+                    }
+                </ul>
+            </details>
+        }
+    </div>
+}

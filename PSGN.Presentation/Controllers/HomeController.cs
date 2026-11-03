@@ -67,10 +67,7 @@ namespace PSGN.Presentation.Controllers
             return RedirectToAction(nameof(Index)); // redireciona para o Index (Post/Redirect/Get): um F5 depois não sincroniza de novo
         } // fim da action Sincronizar
 
-        public IActionResult Privacy() // action da página de privacidade (padrão do template)
-        {
-            return View(); // só devolve a View
-        } // fim da action Privacy
+        // REVISÃO: removida a action Privacy (template em inglês, sem nenhum link apontando para ela) junto com a view Views/Home/Privacy.cshtml
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)] // impede o navegador de guardar a página de erro em cache
         public IActionResult Error() // action da página de erro (padrão do template)

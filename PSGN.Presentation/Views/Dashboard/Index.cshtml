@@ -1,125 +1,77 @@
 @model DashboardViewModel
-@* REVISÃO: view ajustada. Mudanças: (1) saíram a tabela "Situação das Inscrições", os cards de maior cancelamento/reprovação e a lista "Alunos Cancelados", porque a antiga situação das
-   inscrições não existe mais no PSGN; (2) o JavaScript saiu da view e foi para wwwroot/js/dashboard.js, e os dados chegam por um bloco JSON; (3) os gráficos ganharam texto alternativo;
-   (4) o cabeçalho usa a partial _PageHeader *@
+@* REVISÃO: Dashboard no padrão do redesign. Indicadores viraram links (sem botões "Ver…" repetindo a sidebar), os gráficos ficam em cards com filtros alinhados no cabeçalho,
+   a pizza tem legenda com valor e porcentagem, e o botão "Sincronizar" saiu daqui: a sincronização fica só em Cursos, que é de onde ela é operada *@
 @{
     ViewData["Title"] = "Dashboard"; // título da aba e da página
-    ViewData["Subtitle"] = "Visão geral de alunos, cursos e desempenho"; // subtítulo (lido pela partial _PageHeader)
+    ViewData["Section"] = "Visão geral"; // grupo da sidebar (lido pela partial _PageHeader)
+    ViewData["Subtitle"] = "Alunos e cursos sincronizados do Moodle"; // subtítulo (lido pela partial _PageHeader)
 }
 
-<div class="mb-6"> @* espaço entre o cabeçalho e o conteúdo *@
-    <partial name="_PageHeader" /> @* título + subtítulo *@
+<div class="page-header">
+    <partial name="_PageHeader" /> @* grupo + título + subtítulo *@
 </div>
 
-@* Grade de 2 colunas: conteúdo à esquerda, coluna fixa de 320px à direita (em telas pequenas vira 1 coluna) *@
-<div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
+@* ===== Indicadores: só números que existem no ViewModel. O card inteiro é um link ===== *@
+<div class="mb-6 grid gap-4 sm:grid-cols-2">
+    <partial name="_Kpi" model='new IndicadorViewModel { Rotulo = "Total de alunos", Valor = Model.TotalAlunos, Icone = "bi-people", Controller = "Alunos" }' /> @* pessoas distintas (uma pessoa em 2 cursos conta 1) *@
+    <partial name="_Kpi" model='new IndicadorViewModel { Rotulo = "Total de cursos", Valor = Model.TotalCursos, Icone = "bi-book", Controller = "Home" }' /> @* a tela de Cursos é o controller Home *@
+</div>
 
-    @* ===================== COLUNA ESQUERDA ===================== *@
-    <div class="min-w-0 flex flex-col gap-6"> @* min-w-0: sem isso o gráfico (canvas) impede a coluna do grid de encolher em telas estreitas *@
+@* Duas colunas só a partir de 1280px (xl): abaixo disso os cards empilham e cada gráfico usa a largura toda *@
+<div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
 
-        @* ----- Card: totais ----- *@
-        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-
-            @* Linha: total de alunos *@
-            <div class="flex items-center justify-between gap-3 px-6 py-5 border-b border-slate-100">
-                <div>
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total de Alunos</p>
-                    <p class="text-3xl font-bold text-slate-800 mt-1">@Model.TotalAlunos</p> @* pessoas distintas (uma pessoa em 2 cursos conta 1) *@
-                </div>
-                <a asp-controller="Alunos" asp-action="Index"
-                   class="inline-flex items-center gap-1.5 bg-brand-light text-brand px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-brand hover:text-white transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50">
-                    <i class="bi bi-people" aria-hidden="true"></i>
-                    Ver Alunos @* REVISÃO: antes apontava para Cursos porque a tela de alunos não existia; agora ela existe *@
-                </a>
+    @* ----- Gráfico em linha: alunos cadastrados por mês ----- *@
+    <section class="card min-w-0" id="cardLinha" aria-labelledby="tituloLinha">
+        <div class="card-header">
+            <div>
+                <h2 id="tituloLinha" class="card-title">Histórico de alunos</h2>
+                <p class="card-desc">Alunos cadastrados no PSGN a cada mês</p>
             </div>
-
-            @* Linha: total de cursos *@
-            <div class="flex items-center justify-between gap-3 px-6 py-5">
-                <div>
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total de Cursos</p>
-                    <p class="text-3xl font-bold text-slate-800 mt-1">@Model.TotalCursos</p>
-                </div>
-                <a asp-controller="Home" asp-action="Index"
-                   class="inline-flex items-center gap-1.5 bg-brand-light text-brand px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-brand hover:text-white transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50">
-                    <i class="bi bi-mortarboard" aria-hidden="true"></i>
-                    Ver Cursos
-                </a>
+            <div class="flex w-full flex-wrap gap-2 sm:w-auto"> @* os filtros ficam juntos no cabeçalho; em telas estreitas ocupam a largura toda *@
+                @* Sem opção vazia: "tempo" é int no controller e um value="" daria erro 400 *@
+                <select id="selectTempoLinha" aria-label="Período do histórico" asp-items="Model.LineGraphSection.Tempo" class="input w-full sm:w-auto"></select>
+                <select id="selectCursoLinha" aria-label="Curso do histórico" asp-items="Model.LineGraphSection.Cursos" class="input w-full sm:w-56">
+                    <option value="">Todos os cursos</option> @* value vazio = cursoId null no controller *@
+                </select>
             </div>
         </div>
-
-        @* ----- Card: gráfico em linha (alunos cadastrados por mês) ----- *@
-        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
-            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <div>
-                    <h2 class="text-base font-bold text-slate-800">Histórico de Alunos</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Alunos cadastrados no PSGN a cada mês</p>
-                </div>
-                <div class="flex flex-wrap gap-2 max-w-full"> @* flex-wrap + max-w no select de curso, para o nome longo do curso não empurrar o card para fora da tela *@
-                    @* Sem opção vazia: "tempo" é int no controller e um value="" daria erro 400 *@
-                    <select id="selectTempoLinha" aria-label="Período do histórico"
-                            asp-items="Model.LineGraphSection.Tempo"
-                            class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand">
-                    </select>
-                    <select id="selectCursoLinha" aria-label="Curso do histórico"
-                            asp-items="Model.LineGraphSection.Cursos"
-                            class="max-w-full sm:max-w-xs rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand">
-                        <option value="">Todos os cursos</option> @* value vazio = cursoId null no controller *@
-                    </select>
-                </div>
-            </div>
-            <div class="h-72"> @* altura fixa: o Chart.js preenche o container (maintainAspectRatio: false) *@
-                @* REVISÃO: role="img" + aria-label dão um texto alternativo ao gráfico; o dashboard.js reescreve o texto com os valores reais *@
+        <div class="card-body">
+            <div class="relative h-72"> @* altura fixa: o Chart.js preenche o container (maintainAspectRatio: false) *@
+                @* role="img" + aria-label dão um texto alternativo ao gráfico; o dashboard.js reescreve o texto com os valores reais *@
                 <canvas id="lineGraphAlunos" role="img" aria-label="Gráfico de linha: alunos cadastrados por mês"></canvas>
             </div>
         </div>
-    </div>
+    </section>
 
-    @* ===================== COLUNA DIREITA ===================== *@
-    <div class="min-w-0 flex flex-col gap-6">
-
-        <a asp-controller="Home" asp-action="Index"
-           class="inline-flex items-center justify-center gap-2 bg-white border border-slate-200 hover:border-brand hover:text-brand text-slate-700 px-4 py-3 rounded-xl text-sm font-semibold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50">
-            <i class="bi bi-book" aria-hidden="true"></i>
-            Ir para Cursos
-        </a>
-
-        @* Sincronizar: POST para Home/Sincronizar (o tag helper coloca o token antifalsificação); no fim volta para a tela de Cursos *@
-        <form asp-controller="Home" asp-action="Sincronizar" method="post" class="flex">
-            <button type="submit"
-                    class="flex-1 inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-white px-4 py-3 rounded-xl text-sm font-semibold shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2">
-                <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
-                Sincronizar com Moodle e NSG
-            </button>
-        </form>
-
-        @* ----- Card: gráfico de pizza ----- *@
-        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
-            @* Título em cima e select embaixo, com a largura do card: com os nomes longos dos cursos o select, lado a lado com o título, estourava o card de 320px *@
-            <div class="flex flex-col gap-2 mb-3">
-                <h2 class="text-sm font-bold text-slate-800">Alunos por Curso</h2>
-                <select id="selectCursoPizza" aria-label="Curso do gráfico de alunos por curso"
-                        asp-items="Model.SectorGraphSection.Cursos"
-                        class="w-full rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand">
-                    <option value="">Todos</option> @* vazio = uma fatia por curso; com curso = uma fatia por módulo *@
+    @* ----- Gráfico de pizza: alunos por curso (ou por módulo) ----- *@
+    <section class="card min-w-0" id="cardPizza" aria-labelledby="tituloPizza">
+        <div class="card-header">
+            <div class="w-full"> @* título em cima e select embaixo, com a largura do card: os nomes dos cursos são longos *@
+                <h2 id="tituloPizza" class="card-title">Alunos por curso</h2>
+                <p class="card-desc">Escolha um curso para ver a divisão por módulo</p>
+                <select id="selectCursoPizza" aria-label="Curso do gráfico de alunos por curso" asp-items="Model.SectorGraphSection.Cursos" class="input mt-3">
+                    <option value="">Todos os cursos</option> @* vazio = uma fatia por curso; com curso = uma fatia por módulo *@
                 </select>
             </div>
-            <div class="h-48">
-                @* REVISÃO: texto alternativo do gráfico (reescrito pelo dashboard.js com os valores); a legenda abaixo também é lida pelo leitor de tela *@
+        </div>
+        <div class="card-body flex flex-col gap-5 md:flex-row md:items-center xl:flex-col xl:items-stretch">
+            <div class="relative mx-auto h-48 w-48 shrink-0 md:mx-0 xl:mx-auto"> @* a pizza fica centralizada acima da legenda na coluna estreita e ao lado dela em telas médias *@
+                @* texto alternativo do gráfico (reescrito pelo dashboard.js com os valores); a legenda ao lado também é lida pelo leitor de tela *@
                 <canvas id="pieGraphCursos" role="img" aria-label="Gráfico de pizza: alunos por curso"></canvas>
             </div>
-            @* Legenda em HTML (preenchida pelo JavaScript). A legenda do Chart.js não quebra linha: com os nomes longos dos cursos ela cortava os textos e deixava a pizza minúscula *@
-            <ul id="pieLegenda" class="mt-4 space-y-1.5 text-xs text-slate-600"></ul>
+            @* Legenda em HTML (preenchida pelo JavaScript): cor, nome, quantidade e porcentagem. É ela que garante a leitura sem depender só da cor *@
+            <ul id="pieLegenda" class="min-w-0 flex-1 space-y-2.5 text-xs"></ul>
         </div>
-    </div>
+    </section>
 </div>
 
 @section Scripts {
     @* Chart.js 4.4.4 (mesmo arquivo do PSG, copiado para wwwroot/lib/chart.js/dist) *@
     <script src="~/lib/chart.js/dist/chart.umd.js" asp-append-version="true"></script>
 
-    @* REVISÃO: os dados do ViewModel e as URLs dos endpoints chegam ao JavaScript por este bloco JSON (type="application/json" não é executado pelo navegador).
+    @* Os dados do ViewModel e as URLs dos endpoints chegam ao JavaScript por este bloco JSON (type="application/json" não é executado pelo navegador).
        O Json.Serialize gera JSON válido, com acentos e aspas tratados (o Razor, sozinho, codificaria "Gestão" como "Gest&#xE3;o" dentro de <script>).
-       O Url.Action monta as URLs certas mesmo se o site rodar em um subcaminho (antes estavam escritas à mão como "/Dashboard/...") *@
+       O Url.Action monta as URLs certas mesmo se o site rodar em um subcaminho *@
     <script id="dashboard-data" type="application/json">
         @Json.Serialize(new
         {
