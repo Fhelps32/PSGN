@@ -3,3 +3,5 @@ bin/
 obj/
 *.user
 *.suo
+# REVISÃO: dependências do Node (só usadas para compilar o Tailwind); o CSS gerado wwwroot/css/tailwind.css FICA no repositório
+node_modules/

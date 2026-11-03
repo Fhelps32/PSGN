@@ -1,0 +1,4 @@
+/* REVISÃO: entrada do Tailwind. O comando "npm run css:build" lê as classes usadas nas views/JS e gera wwwroot/css/tailwind.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

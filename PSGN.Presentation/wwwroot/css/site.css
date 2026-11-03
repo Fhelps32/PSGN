@@ -1,42 +1,75 @@
 /* ============================================================
-   REVISÃO: CSS trocado pelo do PSG. O visual agora é Tailwind (Play CDN);
-   aqui fica só a LÓGICA da sidebar retrátil, que depende de largura e
-   margem dinâmicas (difícil de fazer só com utilitários, por causa do
-   elemento irmão #main). O CSS antigo era do Bootstrap, que saiu do layout.
+   REVISÃO: CSS da sidebar refeito. Antes a sidebar era SEMPRE fixa e o conteúdo (#main) sempre tinha margem esquerda, então no celular
+   (375px) sobravam ~60px para o conteúdo. Agora o layout é "mobile-first" com UM ponto de quebra (1024px, o "lg" do Tailwind):
+     - abaixo de 1024px: a sidebar é um painel que fica FORA da tela e, ao abrir, SOBREPÕE o conteúdo (o #main nunca é empurrado);
+     - a partir de 1024px: a sidebar fica fixa ao lado do conteúdo e pode ser recolhida (só ícones), como antes.
+   Quem abre/fecha é o wwwroot/js/sidebar.js, que só troca atributos (data-open, aria-expanded); este CSS reage a eles.
    ============================================================ */
 
-/* Largura da sidebar numa variável CSS; ao recolher, só o valor muda */
+/* Largura da sidebar numa variável CSS; ao recolher (só no desktop), só o valor muda */
 :root {
     --sidebar-w: 250px; /* largura expandida */
 }
 
-html.sidebar-collapsed {
-    --sidebar-w: 76px; /* largura recolhida (só os ícones) */
+/* ---------- Celular e tablet (abaixo de 1024px): painel sobreposto ---------- */
+#sidebar {
+    width: min(var(--sidebar-w), 85vw); /* 250px, mas nunca mais que 85% da tela (sobra uma faixa do overlay para tocar e fechar) */
+    transform: translateX(-100%); /* fechada: empurrada para fora da tela, à esquerda */
+    visibility: hidden; /* fechada: some para o leitor de tela e sai da ordem do Tab (os links não podem receber foco escondidos) */
+    transition: transform .2s ease, visibility 0s linear .2s; /* a visibilidade só muda DEPOIS da animação de saída */
 }
 
-/* Sidebar e conteúdo usam a mesma variável, com transição suave */
-#sidebar {
-    width: var(--sidebar-w); /* a sidebar tem a largura da variável */
-    transition: width .2s ease; /* anima a mudança de largura */
+#sidebar[data-open="true"] {
+    transform: translateX(0); /* aberta: entra na tela */
+    visibility: visible; /* aberta: visível e focável */
+    transition: transform .2s ease, visibility 0s; /* ao abrir, fica visível na hora (senão o foco inicial falharia) */
 }
 
 #main {
-    margin-left: var(--sidebar-w); /* o conteúdo começa onde a sidebar termina */
-    transition: margin-left .2s ease; /* anima junto com a sidebar */
+    margin-left: 0; /* o conteúdo ocupa a tela toda: a sidebar sobrepõe, não empurra */
 }
 
-/* Recolhida: esconde os textos e centraliza os ícones */
-html.sidebar-collapsed .sidebar-label {
-    display: none; /* some com o texto dos links e do logo */
+/* ---------- Desktop (1024px ou mais): sidebar fixa e recolhível ---------- */
+@media (min-width: 1024px) {
+    #sidebar {
+        width: var(--sidebar-w); /* largura vem da variável (250px ou 76px) */
+        transform: none; /* sempre dentro da tela */
+        visibility: visible; /* sempre visível */
+        transition: width .2s ease; /* anima só a largura ao recolher/expandir */
+    }
+
+    #main {
+        margin-left: var(--sidebar-w); /* o conteúdo começa onde a sidebar termina */
+        transition: margin-left .2s ease; /* anima junto com a sidebar */
+    }
+
+    html.sidebar-collapsed {
+        --sidebar-w: 76px; /* largura recolhida (só os ícones) */
+    }
+
+    html.sidebar-collapsed .sidebar-label {
+        display: none; /* some com o texto dos links e do logo */
+    }
+
+    html.sidebar-collapsed #sidebar .nav-link {
+        justify-content: center; /* ícone no centro */
+        padding-left: 0; /* tira o espaçamento lateral para caber em 76px */
+        padding-right: 0; /* idem */
+    }
+
+    html.sidebar-collapsed #sidebar > div:first-child {
+        justify-content: center; /* centraliza o conteúdo do cabeçalho */
+    }
+
+    html.sidebar-collapsed #sidebar .sidebar-brand {
+        display: none; /* recolhida: só o botão de menu fica no cabeçalho (o logo não cabe junto em 76px) */
+    }
 }
 
-html.sidebar-collapsed #sidebar .nav-link {
-    justify-content: center; /* ícone no centro */
-    padding-left: 0; /* tira o espaçamento lateral para caber em 76px */
-    padding-right: 0; /* idem */
-}
-
-/* Mantém o botão de menu centralizado no cabeçalho quando recolhida */
-html.sidebar-collapsed #sidebar > div:first-child {
-    justify-content: center; /* centraliza o conteúdo do cabeçalho */
+/* ---------- Acessibilidade: quem pede menos movimento no sistema operacional não vê as animações ---------- */
+@media (prefers-reduced-motion: reduce) {
+    #sidebar,
+    #main {
+        transition: none !important; /* troca de estado instantânea */
+    }
 }

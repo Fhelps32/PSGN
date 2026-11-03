@@ -1,0 +1,12 @@
+{
+  "name": "psgn-presentation",
+  "private": true,
+  "description": "Só compila o Tailwind CSS. O site NÃO precisa do Node para rodar: o CSS gerado (wwwroot/css/tailwind.css) fica no repositório.",
+  "scripts": {
+    "css:build": "tailwindcss -c tailwind.config.js -i Styles/tailwind.input.css -o wwwroot/css/tailwind.css --minify",
+    "css:watch": "tailwindcss -c tailwind.config.js -i Styles/tailwind.input.css -o wwwroot/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

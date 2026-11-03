@@ -1,0 +1,8 @@
+@* REVISÃO: partial nova. O título e o subtítulo apareciam com as mesmas classes em toda view. Ela lê ViewData["Title"] (que cada view já define para a aba) e ViewData["Subtitle"] (novo, opcional); as partials herdam o ViewData da view que as chama *@
+<div>
+    <h1 class="text-2xl sm:text-3xl font-bold text-slate-800">@ViewData["Title"]</h1> @* título da página; menor no celular para não quebrar em várias linhas *@
+    @if (ViewData["Subtitle"] is string subtitulo) @* subtítulo é opcional *@
+    {
+        <p class="text-slate-500 text-sm mt-1">@subtitulo</p> @* texto de apoio *@
+    }
+</div>

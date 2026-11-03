@@ -1,0 +1,6 @@
+@model string
+@* REVISÃO: partial nova. O bloco "ícone de caixa vazia + mensagem" se repetia nas views. Uso: <partial name="_EmptyState" model='"Nenhum aluno encontrado."' /> *@
+<div class="text-center text-slate-400 py-12">
+    <i class="bi bi-inbox text-4xl block mb-2" aria-hidden="true"></i> @* ícone decorativo *@
+    <span class="text-sm">@Model</span> @* mensagem recebida da view *@
+</div>

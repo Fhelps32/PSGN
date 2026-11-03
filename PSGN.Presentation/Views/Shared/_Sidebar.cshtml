@@ -1,45 +1,53 @@
-@* REVISÃO: sidebar nova, copiada do PSG. Só ficaram os itens que existem no PSGN (Dashboard e Cursos), para nenhum link dar 404 *@
+@* REVISÃO: sidebar refeita para ser responsiva. Abaixo de 1024px vira um painel sobreposto (aberto pelo botão da _Topbar); a partir de 1024px fica fixa e recolhível. O JavaScript saiu daqui e foi para wwwroot/js/sidebar.js *@
 @{
     var controller = ViewContext.RouteData.Values["controller"]?.ToString(); // controller da página atual, para destacar o item ativo
 
     var navItems = new[] // itens do menu num array, para não repetir o HTML de cada link
     {
         new { Ctrl = "Dashboard", Icon = "bi-grid", Label = "Dashboard" }, // tela de dashboard
-        new { Ctrl = "Home",      Icon = "bi-book", Label = "Cursos" } ,// tela inicial, que lista os cursos e tem o botão de sincronizar
+        new { Ctrl = "Home",      Icon = "bi-book", Label = "Cursos" }, // tela inicial, que lista os cursos e tem o botão de sincronizar
         new { Ctrl = "Alunos",    Icon = "bi-people", Label = "Alunos" } // tela de alunos
     }; // fim dos itens
 
-
-    const string navBase = "nav-link flex items-center gap-4 px-4 py-3 rounded-xl transition-colors"; // classes de todo link
+    const string navBase = "nav-link flex items-center gap-4 px-4 py-3 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"; // classes de todo link (REVISÃO: o focus-visible mostra o anel de foco só para quem navega pelo teclado)
     const string navInactive = "text-slate-600 hover:bg-brand-light hover:text-brand"; // classes do link que NÃO é a página atual
     const string navActive = "bg-brand-light text-brand font-semibold"; // classes do link da página atual
+    const string botaoIcone = "shrink-0 p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"; // classes dos botões de ícone do cabeçalho
 }
 
-@* aside fixo; a LARGURA é controlada no site.css conforme o estado recolhido/expandido *@
-<aside id="sidebar" class="fixed left-0 top-0 h-screen bg-white border-r border-slate-200 flex flex-col z-20 overflow-hidden">
+@* aside: no celular é um painel fora da tela (data-open="true" o traz para dentro); no desktop é fixo. Largura, deslocamento e visibilidade ficam no site.css *@
+<aside id="sidebar" aria-label="Menu lateral" data-open="false"
+       class="fixed left-0 top-0 h-screen bg-white border-r border-slate-200 flex flex-col z-40 overflow-hidden">
 
-    @* Cabeçalho: logo + botão de recolher/expandir *@
+    @* Cabeçalho: logo + botão de recolher (desktop) ou de fechar (celular) *@
     <div class="h-20 flex items-center justify-between px-5 border-b border-slate-100 shrink-0">
-        <div class="flex items-center gap-3 overflow-hidden"> @* logo *@
-            <i class="bi bi-mortarboard-fill text-brand text-3xl shrink-0"></i> @* ícone de capelo *@
-            <span class="sidebar-label text-2xl font-bold text-brand whitespace-nowrap">PSGN</span> @* nome; some quando a sidebar recolhe *@
+        <div class="sidebar-brand flex items-center gap-3 overflow-hidden"> @* logo; some quando a sidebar está recolhida *@
+            <i class="bi bi-mortarboard-fill text-brand text-3xl shrink-0" aria-hidden="true"></i> @* ícone de capelo (decorativo) *@
+            <span class="sidebar-label text-2xl font-bold text-brand whitespace-nowrap">PSGN</span> @* nome *@
         </div>
-        <button id="toggleSidebar" type="button"
-                class="shrink-0 p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
-                title="Recolher menu"> @* botão que recolhe/expande *@
-            <i class="bi bi-list text-xl"></i> @* ícone de "hambúrguer" *@
+
+        @* Desktop: recolhe/expande. O JavaScript mantém aria-expanded, aria-label e title atualizados *@
+        <button id="toggleSidebar" type="button" aria-controls="sidebar" aria-expanded="true" aria-label="Recolher menu" title="Recolher menu"
+                class="hidden lg:inline-flex @botaoIcone">
+            <i class="bi bi-list text-xl" aria-hidden="true"></i> @* ícone de "hambúrguer" *@
+        </button>
+
+        @* Celular/tablet: fecha o painel *@
+        <button id="closeSidebar" type="button" aria-controls="sidebar" aria-label="Fechar menu"
+                class="lg:hidden inline-flex @botaoIcone">
+            <i class="bi bi-x-lg text-xl" aria-hidden="true"></i> @* ícone de X *@
         </button>
     </div>
 
     @* Navegação *@
-    <nav class="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden">
+    <nav aria-label="Navegação principal" class="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden">
         @foreach (var item in navItems) // um link por item do array
         {
             var isActive = controller == item.Ctrl; // é a página atual?
             <a asp-controller="@item.Ctrl" asp-action="Index"
-               title="@item.Label"
-               class="@navBase @(isActive ? navActive : navInactive)"> @* aplica as classes de ativo ou inativo *@
-                <i class="bi @item.Icon text-xl shrink-0"></i> @* ícone do item *@
+               title="@item.Label" aria-label="@item.Label" aria-current="@(isActive ? "page" : null)"
+               class="@navBase @(isActive ? navActive : navInactive)"> @* aria-label: com a sidebar recolhida o texto some, então o nome do link precisa estar no atributo; aria-current avisa o leitor de tela qual é a página atual *@
+                <i class="bi @item.Icon text-xl shrink-0" aria-hidden="true"></i> @* ícone do item (decorativo) *@
                 <span class="sidebar-label whitespace-nowrap">@item.Label</span> @* texto; some quando a sidebar recolhe *@
             </a>
         }
@@ -47,10 +55,5 @@
 
 </aside>
 
-<script>
-    // Recolher/expandir: o estado fica na classe html.sidebar-collapsed e é salvo no localStorage
-    document.getElementById("toggleSidebar").addEventListener("click", function () { // ao clicar no botão
-        var collapsed = document.documentElement.classList.toggle("sidebar-collapsed"); // liga/desliga a classe e devolve o novo estado
-        localStorage.setItem("sidebarCollapsed", collapsed); // salva para a próxima página abrir igual
-    }); // fim do evento
-</script>
+@* Overlay: fundo escuro atrás do painel aberto; clicar nele fecha. Só existe abaixo de 1024px (lg:hidden) e começa escondido (atributo hidden) *@
+<div id="sidebarOverlay" hidden class="fixed inset-0 z-30 bg-slate-900/50 lg:hidden"></div>
