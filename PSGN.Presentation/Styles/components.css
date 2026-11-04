@@ -333,6 +333,45 @@
         @apply h-1.5 w-1.5 rounded-full bg-highlight-graphic;
     }
 
+    /* REVISÃO: etiquetas de SITUAÇÃO (cores de feedback, nunca as da identidade). Sempre com texto, nunca só a cor */
+    .badge-success {
+        @apply bg-success-soft text-success; /* aprovada (4,84:1) */
+    }
+
+    .badge-danger {
+        @apply bg-danger-soft text-danger; /* reprovada (5,98:1) */
+    }
+
+    .badge-warning {
+        @apply bg-warning-soft text-warning; /* atenção: prazo vencido, nota abaixo de 7 (7,45:1) */
+    }
+
+    /* ---------- REVISÃO: lista mestre-detalhe (item clicável que seleciona um registro) ---------- */
+    .list-item {
+        @apply flex items-center gap-3 rounded-control border border-line px-3 py-2.5 transition-colors hover:border-line-control hover:bg-surface-hover; /* item da lista */
+    }
+
+    .list-item[aria-current="true"] {
+        @apply border-brand bg-brand-soft; /* item selecionado: contorno indigo (não é só a cor: o aria-current e o painel ao lado mudam juntos) */
+    }
+
+    .avatar {
+        @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-tint text-xs font-semibold text-brand; /* iniciais do nome num círculo sky (10:1) */
+    }
+
+    /* ---------- REVISÃO: lista de definições (rótulo em cima, valor embaixo), usada nos detalhes da tentativa ---------- */
+    .facts {
+        @apply grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3; /* 2 colunas no celular, 3 a partir de 640px */
+    }
+
+    .facts dt {
+        @apply text-xs text-ink-muted; /* rótulo */
+    }
+
+    .facts dd {
+        @apply mt-0.5 text-sm font-medium text-ink; /* valor */
+    }
+
     .link {
         @apply font-medium text-accent-strong underline decoration-accent-strong/40 underline-offset-2 hover:decoration-accent-strong; /* link de texto: azul sky escuro (5,5:1) COM sublinhado, para não depender só da cor */
     }
@@ -377,6 +416,31 @@
 
     .toast[data-saindo="true"] {
         @apply opacity-0 transition-opacity; /* some suavemente antes de sair do DOM */
+    }
+
+    /* ---------- REVISÃO: diálogo de confirmação (<dialog> nativo: o navegador já prende o foco, fecha no Esc e escurece o fundo) ---------- */
+    .dialog {
+        @apply m-auto w-[min(28rem,calc(100vw-2rem))] rounded-card border border-line bg-card p-0 text-ink shadow-pop; /* centralizado, largura máxima de 28rem */
+    }
+
+    .dialog::backdrop {
+        background-color: rgb(var(--color-overlay) / 0.5); /* véu indigo escuro atrás do diálogo */
+    }
+
+    .dialog-body {
+        @apply px-5 pb-4 pt-5; /* título e mensagem */
+    }
+
+    .dialog-title {
+        @apply text-lg font-semibold text-ink; /* pergunta principal */
+    }
+
+    .dialog-text {
+        @apply mt-1.5 text-sm text-ink-soft; /* consequência da ação */
+    }
+
+    .dialog-actions {
+        @apply flex justify-end gap-2 rounded-b-card border-t border-line bg-page px-5 py-3; /* Cancelar à esquerda, ação à direita */
     }
 
     /* ---------- Tooltip (um único elemento criado pelo ui.js) ---------- */

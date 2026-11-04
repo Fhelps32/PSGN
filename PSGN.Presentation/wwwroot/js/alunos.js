@@ -1,23 +1,20 @@
-// REVISÃO: arquivo novo, da página Alunos/Index. Faz duas coisas: (1) expande/recolhe a linha com os módulos de cada aluno e
-// (2) preenche o select de Módulo quando o Curso muda (a "cascata" Curso -> Módulo, a mesma ideia do filtro de Inscrições do PSG).
+// REVISÃO: alunos.js da página mestre-detalhe. Faz duas coisas:
+// (1) mantém o aluno selecionado visível na lista (selecionar recarrega a página e a lista voltaria ao topo), como na página de Alunos do PSG;
+// (2) preenche o select de Módulo quando o Curso muda (a "cascata" Curso -> Módulo).
+// O código que expandia as linhas da tabela antiga saiu: o histórico agora fica no painel da direita.
 (function () { // função que roda na hora e isola as variáveis, para não vazarem para o resto do site
     'use strict'; // modo estrito: o JavaScript avisa de erros bobos em vez de ignorá-los
 
-    // ===== Expandir/recolher os módulos de um aluno =====
-    document.addEventListener('click', function (e) { // um único ouvinte para a página toda (event delegation): vale para todos os botões
-        var botao = e.target.closest('[data-alunos-toggle]'); // o clique foi num botão de expandir (ou no ícone dentro dele)?
-        if (!botao) return; // clicou em outra coisa: nada a fazer
+    // ===== (1) Aluno selecionado visível =====
+    var lista = document.getElementById('listaAlunos'); // a lista com rolagem própria (desktop)
+    var selecionado = lista && lista.querySelector('[aria-current="true"]'); // o item do aluno mostrado à direita
+    if (lista && selecionado && lista.scrollHeight > lista.clientHeight) { // só quando a lista tem rolagem própria
+        var topo = selecionado.offsetTop - lista.offsetTop; // posição do item dentro da lista
+        if (topo + selecionado.offsetHeight > lista.clientHeight) // o item está abaixo da parte visível?
+            lista.scrollTop = topo - (lista.clientHeight - selecionado.offsetHeight) / 2; // rola SÓ a lista (não a página) até centralizar o item
+    } // fim do if
 
-        var linha = document.getElementById(botao.getAttribute('data-alunos-toggle')); // linha escondida ligada ao botão
-        var vaiAbrir = linha.hidden; // se está escondida, o clique vai abrir
-        linha.hidden = !vaiAbrir; // mostra ou esconde a linha
-        botao.setAttribute('aria-expanded', String(vaiAbrir)); // avisa o leitor de tela do novo estado
-        var nome = botao.getAttribute('aria-label').replace(/^(Mostrar|Esconder)/, ''); // pega o " módulos de Fulano" do texto atual
-        botao.setAttribute('aria-label', (vaiAbrir ? 'Esconder' : 'Mostrar') + nome); // troca o verbo do texto do botão
-        botao.querySelector('i').style.transform = vaiAbrir ? 'rotate(90deg)' : ''; // gira a seta para baixo quando aberto
-    }); // fim do click
-
-    // ===== Cascata Curso -> Módulo no filtro =====
+    // ===== (2) Cascata Curso -> Módulo no filtro =====
     var form = document.querySelector('form[data-url-modulos]'); // formulário de filtro (a URL do endpoint vem no atributo data-url-modulos)
     if (!form) return; // página sem o filtro: nada a fazer
 
@@ -33,7 +30,7 @@
     } // fim do opcao
 
     selectCurso.addEventListener('change', async function () { // quando o curso do filtro muda
-        selectModulo.replaceChildren(opcao('', 'Todos os módulos')); // zera os módulos e deixa só "Todos os módulos" (REVISÃO: texto do redesign)
+        selectModulo.replaceChildren(opcao('', 'Todos os módulos')); // zera os módulos e deixa só "Todos os módulos"
 
         if (!selectCurso.value) { // voltou para "Todos os cursos"
             selectModulo.disabled = true; // sem curso não há módulos para escolher (e select desabilitado não vai na URL)
@@ -42,7 +39,7 @@
 
         selectModulo.disabled = true; // trava enquanto carrega, para não escolher uma opção que vai sumir
         var resp = await fetch(form.dataset.urlModulos + '?cursoId=' + encodeURIComponent(selectCurso.value)); // pede os módulos do curso ao AlunosController
-        if (!resp.ok) { if (window.PSGN) PSGN.toast('Não foi possível carregar os módulos do curso.', 'danger'); return; } // REVISÃO: antes falhava em silêncio; agora avisa. O select continua só com "Todos os módulos" e desabilitado
+        if (!resp.ok) { if (window.PSGN) PSGN.toast('Não foi possível carregar os módulos do curso.', 'danger'); return; } // erro visível; o select continua só com "Todos os módulos"
 
         var modulos = await resp.json(); // formato: [{ value: 12, text: "Nome do módulo" }, ...]
         modulos.forEach(function (m) { selectModulo.append(opcao(m.value, m.text)); }); // uma opção por módulo

@@ -124,4 +124,43 @@
         var aviso = botao.closest('.alert'); // o aviso inteiro
         if (aviso) aviso.remove(); // remove da página
     }); // fim do click
+
+    // ===== 5) REVISÃO: confirmação antes de ações irreversíveis =====
+    // Uso: <form data-confirm="Mensagem" data-confirm-titulo="Título" data-confirm-acao="Texto do botão" data-confirm-perigo> ...
+    // Ouve o submit na fase de CAPTURA (o "true" no fim), então roda antes do estado de carregamento (item 3) e consegue barrar o envio
+    var dialogo = document.getElementById('dialogo-confirmar'); // o <dialog> do _Layout
+    var formPendente = null; // formulário esperando a resposta
+    var submissorPendente = null; // botão que disparou o envio (para reenviar pelo mesmo botão)
+
+    document.addEventListener('submit', function (e) { // qualquer envio de formulário
+        var form = e.target; // formulário enviado
+        if (!dialogo || !form.hasAttribute('data-confirm')) return; // sem diálogo ou sem pedido de confirmação: segue normal
+        if (form.dataset.confirmado === 'true') { delete form.dataset.confirmado; return; } // já confirmado: deixa passar (e limpa para a próxima vez)
+        e.preventDefault(); // segura o envio
+        e.stopImmediatePropagation(); // impede o estado de carregamento de começar antes da resposta
+        formPendente = form; // guarda para enviar depois
+        submissorPendente = e.submitter || null; // guarda o botão
+        document.getElementById('dialogo-titulo').textContent = form.dataset.confirmTitulo || 'Confirmar ação'; // título (textContent: nunca interpreta HTML)
+        document.getElementById('dialogo-texto').textContent = form.dataset.confirm; // a consequência da ação
+        var confirmar = dialogo.querySelector('[data-dialogo="confirmar"]'); // botão de confirmar
+        confirmar.textContent = form.dataset.confirmAcao || 'Confirmar'; // texto do botão = a ação ("Reprovar")
+        confirmar.className = 'btn ' + (form.hasAttribute('data-confirm-perigo') ? 'btn-danger' : 'btn-primary'); // ação destrutiva em vermelho
+        dialogo.showModal(); // abre: o navegador prende o foco no diálogo e o Cancelar recebe o foco (autofocus)
+    }, true); // fim do submit (fase de captura)
+
+    if (dialogo) { // só se o layout tiver o diálogo
+        dialogo.addEventListener('click', function (e) { // cliques dentro do diálogo
+            var botao = e.target.closest('[data-dialogo]'); // foi num dos dois botões?
+            if (!botao) return; // não
+            dialogo.close(); // fecha nos dois casos
+            if (botao.dataset.dialogo === 'confirmar' && formPendente) { // confirmou
+                formPendente.dataset.confirmado = 'true'; // marca para o submit acima deixar passar
+                if (formPendente.requestSubmit) formPendente.requestSubmit(submissorPendente || undefined); // reenvia pelo mesmo botão (dispara o estado de carregamento)
+                else formPendente.submit(); // navegadores antigos: envia direto
+            } // fim do confirmou
+            formPendente = null; // limpa a espera
+            submissorPendente = null;
+        }); // fim do click
+        dialogo.addEventListener('close', function () { formPendente = null; submissorPendente = null; }); // fechou pelo Esc: descarta
+    } // fim do if
 })(); // fim da função que roda na hora

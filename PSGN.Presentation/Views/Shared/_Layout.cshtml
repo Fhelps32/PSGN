@@ -36,6 +36,19 @@
         </div>
     </main>
 
+    @* REVISÃO: diálogo de confirmação compartilhado. Qualquer <form data-confirm="mensagem"> passa por ele antes de enviar (ui.js).
+       Cancelar recebe o foco inicial (autofocus): Enter ou Esc nunca confirmam por acidente uma ação irreversível *@
+    <dialog id="dialogo-confirmar" class="dialog" aria-labelledby="dialogo-titulo" aria-describedby="dialogo-texto">
+        <div class="dialog-body">
+            <p id="dialogo-titulo" class="dialog-title">Confirmar</p> @* título, trocado pelo ui.js *@
+            <p id="dialogo-texto" class="dialog-text"></p> @* consequência da ação, trocada pelo ui.js *@
+        </div>
+        <div class="dialog-actions">
+            <button type="button" class="btn btn-secondary" data-dialogo="cancelar" autofocus>Cancelar</button>
+            <button type="button" class="btn btn-primary" data-dialogo="confirmar">Confirmar</button> @* texto e cor trocados pelo ui.js *@
+        </div>
+    </dialog>
+
     @* Região das notificações temporárias (toast): o leitor de tela anuncia o que entrar aqui (aria-live) *@
     <div id="toast-region" class="toast-region" role="region" aria-label="Notificações" aria-live="polite"></div>
 
