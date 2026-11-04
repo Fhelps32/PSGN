@@ -29,6 +29,13 @@ namespace PSGN.Infra.Data.Mappings
 
             //REVISÃO: o aluno é inscrito em cada módulo uma vez só
             builder.HasIndex(am => new { am.IdAluno, am.IdModulo }).IsUnique();
+
+            //REVISÃO: propriedades CALCULADAS da regra de tentativas (não são colunas). Sem estes Ignore, o EF tomava TentativasEmOrdem e
+            //TentativaAberta por navegações novas para Tentativa e procurava uma coluna "AlunoModuloIdAlunoModulo" que não existe
+            builder.Ignore(am => am.TentativasEmOrdem);
+            builder.Ignore(am => am.TentativaAberta);
+            builder.Ignore(am => am.Aprovado);
+            builder.Ignore(am => am.PodeAbrirTentativa);
         }
     }
 }

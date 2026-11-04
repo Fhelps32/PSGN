@@ -51,13 +51,13 @@ namespace PSGN.Application.Servicos.Alunos // pasta nova, igual à "Servicos/Alu
             var consulta = _dbContext.Alunos // começa na tabela de alunos (1 linha por usuário em cada curso)
                 .Include(a => a.Usuario) // traz o usuário, de onde vêm a matrícula e o nome
                 .Include(a => a.Curso) // traz o curso, para mostrar o nome dele
-                .Include(a => a.Modulos).ThenInclude(am => am.Modulo) // traz as inscrições do aluno e o módulo de cada uma
-                .Include(a => a.Modulos).ThenInclude(am => am.Tentativas) // traz as tentativas de cada inscrição, que o AlunoModulo.ObterNotaFinal usa
+                .Include(a => a.Modulos).ThenInclude(am => am.Modulo) // traz as inscrições do aluno e o módulo de cada uma (a lista mostra o módulo atual)
+                // REVISÃO: as tentativas saíram daqui: a lista não as mostra mais; o histórico completo vem de ObterAlunoComHistoricoAsync, só do aluno selecionado
                 .AsNoTracking() // só leitura: o EF não precisa acompanhar mudanças, então gasta menos memória
                 .AsQueryable(); // mantém como consulta para poder acrescentar filtros sem executar nada ainda
 
-            if (!string.IsNullOrWhiteSpace(nome)) // se a tela digitou um nome
-                consulta = consulta.Where(a => a.Usuario.Nome.Contains(nome)); // vira um LIKE '%nome%' no SQL Server
+            if (!string.IsNullOrWhiteSpace(nome)) // se a tela digitou um nome ou uma matrícula
+                consulta = consulta.Where(a => a.Usuario.Nome.Contains(nome) || a.Usuario.Matricula.Contains(nome)); // REVISÃO: busca pelo nome OU pela matrícula (como no PSG); vira LIKE '%texto%' no SQL Server
 
             if (idCurso.HasValue) // se a tela escolheu um curso
                 consulta = consulta.Where(a => a.IdCurso == idCurso.Value); // só os alunos daquele curso
@@ -76,5 +76,17 @@ namespace PSGN.Application.Servicos.Alunos // pasta nova, igual à "Servicos/Alu
 
             return await ordenada.PaginarAsync(pagina, tamanhoPagina); // conta o total, corrige a página e traz só os registros dela
         } // fim do ListarAlunosAsync
+
+        // REVISÃO: método novo. Um aluno com TODO o histórico: cada módulo em que entrou e todas as tentativas de cada um. Devolve a entidade do domain (null se não existir)
+        public async Task<Aluno?> ObterAlunoComHistoricoAsync(int idAluno)
+        {
+            return await _dbContext.Alunos // começa na tabela de alunos
+                .Include(a => a.Usuario) // nome e matrícula
+                .Include(a => a.Curso).ThenInclude(c => c.Modulos) // o curso e os módulos dele, para o "módulos concluídos / total do curso"
+                .Include(a => a.Modulos).ThenInclude(am => am.Modulo) // as inscrições e o módulo de cada uma
+                .Include(a => a.Modulos).ThenInclude(am => am.Tentativas) // todas as tentativas de cada inscrição (as regras de situação precisam delas)
+                .AsNoTracking() // só leitura (é um aluno só, então o JOIN das coleções fica pequeno)
+                .FirstOrDefaultAsync(a => a.IdAluno == idAluno); // o aluno pedido, ou null
+        } // fim do ObterAlunoComHistoricoAsync
     } // fim da classe
 } // fim do namespace

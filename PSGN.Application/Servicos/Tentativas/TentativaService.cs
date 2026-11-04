@@ -1,17 +1,20 @@
-﻿using Microsoft.EntityFrameworkCore; // traz ToListAsync, Include, ThenInclude e ToDictionaryAsync, que transformam consultas LINQ em SQL
+﻿using Microsoft.EntityFrameworkCore; // traz ToListAsync, Include, ThenInclude e FirstOrDefaultAsync, que transformam consultas LINQ em SQL
 using PSGN.Application.Data; // onde está a interface IPSGNDbContext (o acesso ao banco)
 using PSGN.Application.Interfaces.ExternoServices; // onde está a interface IExternoTentativa (o acesso ao Moodle)
 using PSGN.Domain; // as entidades Curso, Modulo, AlunoModulo e Tentativa
-using System; // TimeSpan
+using System; // DateTime
 using System.Collections.Generic; // List<T>
-using System.Linq; // Where, ToDictionary
+using System.Linq; // Where, OrderBy, GroupBy
 using System.Threading.Tasks; // Task, para os métodos async
 
 namespace PSGN.Application.Servicos.Tentativas // mesma organização dos outros services: uma pasta por assunto
 {
-    public class TentativaService // serviço que sincroniza as tentativas do Moodle com o banco do PSGN
+    // REVISÃO: service reescrito para a regra de tentativas definida pelo usuário. A tentativa agora é um PERÍODO do PSGN (abre, recebe a prova,
+    // é fechada pelo administrador), e não mais uma cópia de cada prova do Moodle. As regras em si ficam no domínio (Tentativa e AlunoModulo);
+    // aqui só se carrega, chama a regra e grava. Os métodos devolvem entidades do domain, nunca DTO
+    public class TentativaService // sincroniza as provas do Moodle e executa as ações do administrador
     {
-        private readonly IExternoTentativa _externoTentativa; // quem busca as tentativas no Moodle (a implementação fica na Infra)
+        private readonly IExternoTentativa _externoTentativa; // quem busca as provas no Moodle (a implementação fica na Infra)
         private readonly IPSGNDbContext _dbContext; // quem lê e grava no banco do PSGN
 
         public TentativaService(IExternoTentativa externoTentativa, IPSGNDbContext dbContext) // o ASP.NET entrega as duas dependências aqui (injeção de dependência)
@@ -20,73 +23,107 @@ namespace PSGN.Application.Servicos.Tentativas // mesma organização dos outros
             _dbContext = dbContext; // guarda o acesso ao banco para usar nos métodos
         } // fim do construtor
 
-        // REVISÃO: devolve List<Tentativa> (entidade do domain) com as tentativas CRIADAS, igual o ModuloService devolve List<Modulo> e o UsuarioService devolve List<AlunoModulo>
+        // ===================== SINCRONIZAÇÃO =====================
+
+        // Devolve as tentativas ABERTAS nesta sincronização (a 1ª tentativa de cada inscrição nova ou antiga que ainda não tinha nenhuma)
         public async Task<List<Tentativa>> SincronizarTentativasDoCursoAsync(Curso curso) // recebe o Curso já carregado, então não precisa buscá-lo de novo
         {
             var modulos = await _dbContext.Modulos // começa a consulta na tabela de módulos
-                .Where(m => m.IdCurso == curso.IdCurso && m.IdCmidMoodle != 0) // só os módulos deste curso que têm o cmid do questionário final (0 = não tem, não dá para consultar o Moodle)
+                .Where(m => m.IdCurso == curso.IdCurso) // REVISÃO: TODOS os módulos do curso (antes só os que tinham questionário): a 1ª tentativa abre mesmo sem questionário
                 .ToListAsync(); // executa o SELECT e traz os módulos para a memória
 
-            var tentativasCriadas = new List<Tentativa>(); // lista que vai juntar as tentativas novas de todos os módulos do curso
+            var tentativasAbertas = new List<Tentativa>(); // junta as tentativas abertas em todos os módulos do curso
 
             foreach (var modulo in modulos) // percorre os módulos um por um
-                tentativasCriadas.AddRange(await SincronizarTentativasDoModuloAsync(modulo)); // sincroniza o módulo e junta as tentativas que ele criou na lista do curso
+                tentativasAbertas.AddRange(await SincronizarTentativasDoModuloAsync(modulo)); // sincroniza o módulo e junta as tentativas que ele abriu
 
-            return tentativasCriadas; // devolve ao SincronizacaoService as tentativas novas deste curso
+            return tentativasAbertas; // devolve ao SincronizacaoService
         } // fim do método do curso
 
         private async Task<List<Tentativa>> SincronizarTentativasDoModuloAsync(Modulo modulo) // trabalho de um módulo só; é privado porque só este service usa
         {
-            var tentativasMoodle = await _externoTentativa.ObterTentativasDoQuestionarioAsync(modulo.IdCmidMoodle); // pergunta ao Moodle todas as tentativas do questionário final deste módulo (o Moodle não filtra por aluno)
+            var inscricoes = await _dbContext.AlunosModulos // começa na tabela de inscrições (aluno x módulo)
+                .Include(am => am.Aluno).ThenInclude(a => a.Usuario) // a matrícula, que liga a prova do Moodle ao aluno, está no Usuario
+                .Include(am => am.Tentativas) // as regras de abertura e de registro da prova precisam do histórico
+                .Where(am => am.IdModulo == modulo.IdModulo) // só as inscrições deste módulo
+                .ToListAsync(); // uma consulta só, tudo para a memória
 
-            var tentativasCriadas = new List<Tentativa>(); // lista das tentativas novas deste módulo; é o que o método devolve
+            // 1) Regra: "no momento em que um aluno entra em um módulo ele inicia uma tentativa". Toda inscrição sem tentativa ganha a 1ª,
+            //    aberta na data em que ele entrou no módulo. Vale para as inscrições novas e para as antigas, anteriores a esta regra
+            var tentativasAbertas = new List<Tentativa>(); // as que forem abertas agora
+            foreach (var inscricao in inscricoes.Where(am => am.Tentativas.Count == 0)) // inscrições ainda sem nenhuma tentativa
+                tentativasAbertas.Add(inscricao.AbrirTentativa(inscricao.DataInscricao)); // a regra (e o prazo de 40 dias) está no domínio
 
-            if (tentativasMoodle.Count == 0) // se ninguém fez a prova ainda
-                return tentativasCriadas; // devolve a lista vazia e evita as consultas ao banco abaixo
-
-            var alunoModuloPorMatricula = (await _dbContext.AlunosModulos // começa na tabela de inscrições (aluno x módulo)
-                    .Include(am => am.Aluno).ThenInclude(a => a.Usuario) // traz junto o Aluno e o Usuario dele, porque a matrícula está no Usuario
-                    .Where(am => am.IdModulo == modulo.IdModulo) // só as inscrições deste módulo
-                    .ToListAsync()) // executa uma única consulta e traz tudo para a memória
-                .ToDictionary(am => am.Aluno.Usuario.Matricula); // monta um dicionário com a matrícula como chave, para achar o AlunoModulo sem ir ao banco a cada tentativa
-
-            var tentativaPorIdAttempt = await _dbContext.Tentativas // começa na tabela de tentativas
-                .Where(t => t.AlunoModulo.IdModulo == modulo.IdModulo && t.IdAttempt != 0) // só as deste módulo que vieram do Moodle (IdAttempt 0 = não veio de lá)
-                .ToDictionaryAsync(t => t.IdAttempt); // dicionário com o id da tentativa no Moodle como chave, para saber o que já foi importado
-
-            foreach (var tentativaMoodle in tentativasMoodle) // percorre cada tentativa que o Moodle devolveu
+            // 2) Provas do Moodle: só para módulos com o questionário final ligado (IdCmidMoodle 0 = não dá para consultar)
+            if (modulo.IdCmidMoodle != 0)
             {
-                if (tentativaPorIdAttempt.TryGetValue(tentativaMoodle.IdAttempt, out var existente)) // se esta tentativa já está no banco, "existente" recebe a entidade
+                var provas = await _externoTentativa.ObterTentativasDoQuestionarioAsync(modulo.IdCmidMoodle); // todas as provas do questionário (o Moodle não filtra por aluno)
+                var inscricaoPorMatricula = inscricoes.ToDictionary(am => am.Aluno.Usuario.Matricula); // achar a inscrição pela matrícula sem ir ao banco
+
+                foreach (var prova in provas.Where(p => p.MatriculaAluno is not null).OrderBy(p => p.DataInicio)) // da mais antiga para a mais recente: no fim, vale a mais recente
                 {
-                    if (existente.Nota != tentativaMoodle.Nota // a nota mudou no Moodle?
-                        || existente.DataInicioAttempt != tentativaMoodle.DataInicio // ou a data de início mudou?
-                        || existente.DataFimAttempt != tentativaMoodle.DataFinal) // ou a data de fim mudou (a prova terminou depois de importada)?
-                    {
-                        existente.Nota = tentativaMoodle.Nota; // copia a nota nova (o EF percebe a mudança sozinho e gera o UPDATE no SaveChanges)
-                        existente.DataInicioAttempt = tentativaMoodle.DataInicio; // copia a data de início do Moodle
-                        existente.DataFimAttempt = tentativaMoodle.DataFinal; // copia a data de fim do Moodle
-                    } // fim da atualização; Prazo, DataInicioTentativa e DataFimTentativa não são tocados porque quem controla é o PSGN
-                    continue; // já tratou esta tentativa, vai para a próxima
-                } // fim do caso "já existe"
+                    if (!inscricaoPorMatricula.TryGetValue(prova.MatriculaAluno, out var inscricao)) // a matrícula não está inscrita neste módulo no PSGN?
+                        continue; // não há a quem ligar a prova
 
-                if (tentativaMoodle.MatriculaAluno is null // a tentativa veio sem matrícula?
-                    || tentativaMoodle.DataInicio is null // ou sem data de início (o construtor de Tentativa exige uma)?
-                    || !alunoModuloPorMatricula.TryGetValue(tentativaMoodle.MatriculaAluno, out var alunoModulo)) // ou a matrícula não está inscrita neste módulo no PSGN? (quando acha, "alunoModulo" já recebe o vínculo)
-                    continue; // não há a quem ligar a tentativa, então pula (não cria nada)
+                    var jaRegistrada = inscricao.Tentativas.FirstOrDefault(t => t.IdAttempt == prova.IdAttempt); // esta prova já está em alguma tentativa?
+                    var destino = jaRegistrada ?? inscricao.TentativaAberta; // senão, ela entra na tentativa aberta do aluno neste módulo
+                    destino?.RegistrarProva(prova.IdAttempt, prova.DataInicio, prova.DataFinal, prova.Nota); // o domínio ignora se a tentativa já foi fechada ou se a prova é mais antiga
+                } // fim do foreach das provas (sem tentativa aberta e sem registro anterior, a prova é ignorada: o módulo foi aprovado ou o administrador não abriu outra)
+            } // fim do if do questionário
 
-                var nova = new Tentativa(alunoModulo, tentativaMoodle.DataInicio.Value, TimeSpan.Zero) // usa o construtor do domain; DataInicioTentativa = início do attempt e Prazo = zero (o Moodle não informa nenhum dos dois)
-                { // inicializador de objeto: preenche as propriedades que vêm do Moodle
-                    IdAttempt = tentativaMoodle.IdAttempt, // guarda o id do Moodle, que é o que impede duplicar na próxima sincronização
-                    DataInicioAttempt = tentativaMoodle.DataInicio, // início real da tentativa no Moodle
-                    DataFimAttempt = tentativaMoodle.DataFinal, // fim real da tentativa (null se ainda estiver em andamento)
-                    Nota = tentativaMoodle.Nota // nota da tentativa (null se ainda não foi corrigida)
-                }; // fim do inicializador
-                _dbContext.Tentativas.Add(nova); // marca a entidade para ser inserida no próximo SaveChanges
-                tentativasCriadas.Add(nova); // guarda na lista de retorno para o chamador saber o que foi criado
-            } // fim do foreach das tentativas do Moodle
-
-            await _dbContext.SaveChangesAsync(); // grava de uma vez os INSERTs das novas e os UPDATEs das existentes alteradas, um save por módulo
-            return tentativasCriadas; // devolve as tentativas novas deste módulo
+            await _dbContext.SaveChangesAsync(); // grava de uma vez as tentativas abertas e as provas registradas, um save por módulo
+            return tentativasAbertas; // devolve as tentativas abertas neste módulo
         } // fim do método do módulo
+
+        // ===================== AÇÕES DO ADMINISTRADOR =====================
+        // Cada ação carrega a tentativa com a inscrição e o histórico, chama a regra do domínio (que lança InvalidOperationException se a ação
+        // não for permitida naquele estado) e grava. A tela mostra a mensagem da exceção ao usuário
+
+        public async Task<Tentativa> AprovarAsync(int idTentativa) // nota >= 7: fecha como aprovada e conclui o módulo
+        {
+            var tentativa = await CarregarAsync(idTentativa); // tentativa + inscrição + histórico
+            tentativa.Aprovar(DateTime.Now); // regra no domínio
+            await _dbContext.SaveChangesAsync(); // grava o fechamento e a conclusão do módulo
+            return tentativa; // devolve a tentativa aprovada
+        } // fim do AprovarAsync
+
+        public async Task<Tentativa> ReprovarEAbrirNovaAsync(int idTentativa) // nota < 7: fecha como reprovada e abre a próxima no mesmo módulo
+        {
+            var tentativa = await CarregarAsync(idTentativa); // tentativa + inscrição + histórico
+            var agora = DateTime.Now; // a mesma data fecha uma e abre a outra
+            tentativa.Reprovar(agora); // regra no domínio
+            var nova = tentativa.AlunoModulo.AbrirTentativa(agora); // nova tentativa, com novo prazo de 40 dias
+            await _dbContext.SaveChangesAsync(); // grava as duas mudanças juntas
+            return nova; // devolve a tentativa nova
+        } // fim do ReprovarEAbrirNovaAsync
+
+        public async Task<Tentativa> ReprovarPorInatividadeEAbrirNovaAsync(int idTentativa) // sem prova: fecha por inatividade e abre a próxima
+        {
+            var tentativa = await CarregarAsync(idTentativa); // tentativa + inscrição + histórico
+            var agora = DateTime.Now; // a mesma data fecha uma e abre a outra
+            tentativa.ReprovarPorInatividade(agora); // regra no domínio
+            var nova = tentativa.AlunoModulo.AbrirTentativa(agora); // nova tentativa, com novo prazo de 40 dias
+            await _dbContext.SaveChangesAsync(); // grava as duas mudanças juntas
+            return nova; // devolve a tentativa nova
+        } // fim do ReprovarPorInatividadeEAbrirNovaAsync
+
+        public async Task<Tentativa> AbrirNovaAsync(int idAlunoModulo) // abre uma tentativa manualmente (módulo não aprovado e sem tentativa em curso)
+        {
+            var inscricao = await _dbContext.AlunosModulos // começa na tabela de inscrições
+                .Include(am => am.Tentativas) // a regra precisa do histórico
+                .FirstOrDefaultAsync(am => am.IdAlunoModulo == idAlunoModulo) // a inscrição pedida
+                ?? throw new InvalidOperationException("Inscrição não encontrada."); // id que não existe (ex.: URL alterada)
+            var nova = inscricao.AbrirTentativa(DateTime.Now); // regra no domínio
+            await _dbContext.SaveChangesAsync(); // grava a tentativa nova
+            return nova; // devolve a tentativa aberta
+        } // fim do AbrirNovaAsync
+
+        private async Task<Tentativa> CarregarAsync(int idTentativa) // tentativa com tudo de que as regras precisam
+        {
+            return await _dbContext.Tentativas // começa na tabela de tentativas
+                .Include(t => t.AlunoModulo).ThenInclude(am => am.Tentativas) // a inscrição e o histórico (abrir a próxima exige ver as outras)
+                .FirstOrDefaultAsync(t => t.IdTentativa == idTentativa) // a tentativa pedida
+                ?? throw new InvalidOperationException("Tentativa não encontrada."); // id que não existe (ex.: URL alterada)
+        } // fim do CarregarAsync
     } // fim da classe
 } // fim do namespace
