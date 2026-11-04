@@ -1,9 +1,10 @@
 @model IndicadorViewModel
-@* REVISÃO: partial nova. Indicador (KPI): rótulo, número grande e ícone discreto. O card inteiro é o link, então não precisa de botões "Ver…" repetindo a sidebar *@
+@* REVISÃO: partial atualizada. Indicador (KPI): rótulo, número grande e ícone discreto. O card inteiro é o link, então não precisa de botões "Ver…" repetindo a sidebar.
+   O tile do ícone ganha o tom da categoria (Model.Tom: "accent" = sky, "highlight" = coral); o ícone em si é sempre indigo, para manter o contraste *@
 <a asp-controller="@Model.Controller" asp-action="@Model.Action" class="kpi group">
     <div>
         <p class="kpi-label">@Model.Rotulo</p> @* o que está sendo contado *@
         <p class="kpi-value">@Model.Valor</p> @* o número *@
     </div>
-    <span class="kpi-icon" aria-hidden="true"><i class="bi @Model.Icone"></i></span> @* ícone decorativo *@
+    <span class="kpi-icon kpi-icon-@Model.Tom" aria-hidden="true"><i class="bi @Model.Icone"></i></span> @* ícone decorativo no tile da categoria *@
 </a>

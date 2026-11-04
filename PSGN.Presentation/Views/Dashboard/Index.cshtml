@@ -14,7 +14,7 @@
 @* ===== Indicadores: só números que existem no ViewModel. O card inteiro é um link ===== *@
 <div class="mb-6 grid gap-4 sm:grid-cols-2">
     <partial name="_Kpi" model='new IndicadorViewModel { Rotulo = "Total de alunos", Valor = Model.TotalAlunos, Icone = "bi-people", Controller = "Alunos" }' /> @* pessoas distintas (uma pessoa em 2 cursos conta 1) *@
-    <partial name="_Kpi" model='new IndicadorViewModel { Rotulo = "Total de cursos", Valor = Model.TotalCursos, Icone = "bi-book", Controller = "Home" }' /> @* a tela de Cursos é o controller Home *@
+    <partial name="_Kpi" model='new IndicadorViewModel { Rotulo = "Total de cursos", Valor = Model.TotalCursos, Icone = "bi-book", Tom = "highlight", Controller = "Home" }' /> @* a tela de Cursos é o controller Home; REVISÃO: tile coral, para diferenciar a categoria *@
 </div>
 
 @* Duas colunas só a partir de 1280px (xl): abaixo disso os cards empilham e cada gráfico usa a largura toda *@

@@ -12,7 +12,7 @@ namespace PSGN.Presentation.ViewModels // REVISÃO: arquivo novo; mesmo namespac
 
     public class AlertaViewModel // modelo da partial _Alert (aviso fixo na página)
     {
-        public string Tipo { get; set; } = "success"; // "success", "danger" ou "warning"
+        public string Tipo { get; set; } = "success"; // "success", "danger", "warning" ou "info" (REVISÃO: "info" é novo, usa o sky da identidade)
         public string Mensagem { get; set; } = string.Empty; // texto do aviso
         public bool Fechavel { get; set; } = true; // mostra o botão de fechar?
     } // fim do AlertaViewModel
@@ -22,6 +22,7 @@ namespace PSGN.Presentation.ViewModels // REVISÃO: arquivo novo; mesmo namespac
         public string Rotulo { get; set; } = string.Empty; // o que está sendo contado
         public int Valor { get; set; } // o número
         public string Icone { get; set; } = string.Empty; // classe do ícone Bootstrap Icons
+        public string Tom { get; set; } = "accent"; // REVISÃO: tom do tile do ícone, só visual (autorizado pelo usuário): "accent" (sky) ou "highlight" (coral). Não carrega nenhuma regra de negócio
         public string Controller { get; set; } = string.Empty; // para onde o indicador leva
         public string Action { get; set; } = "Index"; // action de destino
     } // fim do IndicadorViewModel
