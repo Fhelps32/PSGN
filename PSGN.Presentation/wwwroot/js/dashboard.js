@@ -1,4 +1,4 @@
-// REVISÃO: dashboard.js reescrito para o redesign. Mudanças: (1) todas as cores e a fonte vêm dos tokens do CSS (Styles/tokens.css), sem hex no JavaScript;
+// REVISÃO: dashboard.js reescrito para o redesign (e atualizado para os papéis de cor --color-* da nova identidade cromática). Mudanças: (1) todas as cores e a fonte vêm dos tokens do CSS (Styles/tokens.css), sem hex no JavaScript;
 // (2) paleta categórica da pizza validada (6 cores, ordem fixa, distinguível por daltônicos); (3) legenda com quantidade E porcentagem; (4) estado de carregamento nos cards
 // e erro visível (toast) quando o AJAX falha, em vez de falhar em silêncio. Os dados e as URLs chegam por <script id="dashboard-data" type="application/json">.
 (function () { // função que roda na hora e isola as variáveis, para não vazarem para o resto do site
@@ -10,21 +10,21 @@
 
     // ===== Tokens do design system =====
     var estilo = getComputedStyle(document.documentElement); // estilos calculados do <html>, onde os tokens (:root) estão
-    function token(nome) { return estilo.getPropertyValue(nome).trim(); } // lê um token, ex.: token('--ink-3')
+    function token(nome) { return estilo.getPropertyValue(nome).trim(); } // lê um token, ex.: token('--color-text-muted')
     function rgb(nome, alfa) { // converte um token de cor ("37 99 235") para uma cor que o canvas entende
         var c = token(nome).split(/\s+/); // separa R, G e B
         return alfa === undefined ? 'rgb(' + c.join(',') + ')' : 'rgba(' + c.join(',') + ',' + alfa + ')'; // com ou sem transparência
     } // fim do rgb
 
-    var coresPizza = [1, 2, 3, 4, 5, 6].map(function (n) { return token('--chart-' + n); }); // paleta categórica (--chart-1..6); a legenda HTML usa as mesmas
-    var corLinha = token('--chart-1'); // a série única do gráfico em linha usa o azul da marca
+    var coresPizza = [1, 2, 3, 4, 5, 6].map(function (n) { return token('--color-chart-' + n); }); // paleta categórica (--color-chart-1..6); a legenda HTML usa as mesmas
+    var corLinha = token('--color-chart-1'); // a série única do gráfico em linha usa o indigo (série 1 da paleta)
 
     Chart.defaults.font.family = token('--font-sans'); // Inter também dentro dos gráficos
     Chart.defaults.font.size = 12; // 12px: mesmo tamanho dos rótulos do sistema
-    Chart.defaults.color = rgb('--ink-3'); // cor dos textos dos eixos (contraste mínimo de 4,5:1)
+    Chart.defaults.color = rgb('--color-text-muted'); // cor dos textos dos eixos (contraste mínimo de 4,5:1)
 
     var tooltipPadrao = { // tooltip no estilo do sistema: escuro, cantos de 6px, sem caixinha de cor
-        backgroundColor: rgb('--ink'), // mesmo fundo do tooltip HTML (.tooltip)
+        backgroundColor: rgb('--color-text-primary'), // mesmo fundo do tooltip HTML (.tooltip)
         padding: 8, // respiro interno
         cornerRadius: 6, // mesmo raio dos controles (--radius-control)
         displayColors: false, // sem quadradinho de cor: o título já diz de quem é o valor
@@ -60,13 +60,13 @@
                 data: dados.lineData, // eixo Y
                 borderColor: corLinha, // linha de 2px no azul da marca
                 borderWidth: 2, // espessura fina
-                backgroundColor: rgb('--brand', 0.08), // preenchimento bem leve abaixo da linha
+                backgroundColor: rgb('--color-brand-primary', 0.08), // preenchimento bem leve abaixo da linha
                 tension: 0.3, // suaviza a curva
                 fill: true, // preenche abaixo da linha
                 pointRadius: 3, // pontos pequenos
                 pointHoverRadius: 5, // aumentam ao passar o mouse
                 pointBackgroundColor: corLinha, // miolo do ponto
-                pointBorderColor: rgb('--card'), // anel branco separa o ponto da linha
+                pointBorderColor: rgb('--color-surface-primary'), // anel branco separa o ponto da linha
                 pointBorderWidth: 2 // espessura do anel
             }] // fim da série
         }, // fim dos dados
@@ -76,8 +76,8 @@
             interaction: { mode: 'index', intersect: false }, // o tooltip aparece ao passar perto do ponto, não só em cima dele
             plugins: { legend: { display: false }, tooltip: tooltipPadrao }, // sem legenda (série única); tooltip do sistema
             scales: { // eixos discretos
-                x: { grid: { display: false }, border: { color: rgb('--line') } }, // sem grade vertical
-                y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: rgb('--line') }, border: { display: false } } // começa no 0, só inteiros, grade clara e sem linha do eixo
+                x: { grid: { display: false }, border: { color: rgb('--color-border-default') } }, // sem grade vertical
+                y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: rgb('--color-border-default') }, border: { display: false } } // começa no 0, só inteiros, grade clara e sem linha do eixo
             } // fim dos eixos
         } // fim das opções
     }); // fim do gráfico em linha
@@ -91,7 +91,7 @@
             datasets: [{ // uma única série
                 data: dados.pieData, // tamanho das fatias
                 backgroundColor: coresPizza, // cores validadas; o Chart.js repete em ciclo se houver mais de 6 fatias
-                borderColor: rgb('--card'), // 2px da cor do card entre as fatias: separa as cores vizinhas
+                borderColor: rgb('--color-surface-primary'), // 2px da cor do card entre as fatias: separa as cores vizinhas
                 borderWidth: 2, // espessura da separação
                 hoverOffset: 4 // a fatia sob o mouse salta um pouco
             }] // fim da série

@@ -1,6 +1,9 @@
 /* ============================================================
    REVISÃO: componentes do design system do PSGN. As views usam estas classes (btn, input, card, table...) em vez de repetir dezenas de
-   utilitários do Tailwind; o visual de cada componente fica definido UMA vez, aqui, sempre a partir dos tokens (Styles/tokens.css).
+   utilitários do Tailwind; o visual de cada componente fica definido UMA vez, aqui, sempre a partir dos PAPÉIS de cor (Styles/tokens.css).
+   Nenhum valor de cor é escrito neste arquivo (única exceção documentada: a seta do <select>, que fica dentro de uma imagem SVG).
+   Regras da identidade: o indigo é a ação principal; o sky é destaque (sobre fundo claro, sempre a versão "strong"); o coral e a banana
+   NUNCA são cor de texto nem de ícone; o coral nunca representa erro; as cores de feedback são independentes da identidade.
    ============================================================ */
 
 /* ---------- Base: estilos do documento ---------- */
@@ -14,45 +17,42 @@
     }
 
     :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-        outline: 2px solid rgb(var(--brand)); /* anel de foco ÚNICO para todo o sistema, só aparece para quem usa o teclado */
+        outline: 2px solid rgb(var(--color-focus-ring)); /* anel de foco ÚNICO para todo o sistema (5,5:1 no branco); só aparece para quem usa o teclado. Na sidebar a cor muda (layout.css) */
         outline-offset: 2px; /* afasta o anel do elemento para não encostar na borda */
     }
 
-    ::placeholder {
-        @apply text-ink-muted opacity-100; /* placeholder com o contraste mínimo (o padrão do navegador é mais claro) */
-    }
 }
 
 @layer components {
 
     /* ---------- Link "Ir para o conteúdo": fica fora da tela e desce para o canto quando recebe foco pelo Tab ---------- */
     .skip-link {
-        @apply fixed left-4 top-4 z-50 -translate-y-20 rounded-control border border-line bg-card px-4 py-2 text-sm font-medium text-brand shadow-pop; /* escondido acima da tela (continua focável e legível por leitor de tela) */
+        @apply fixed left-4 top-4 z-50 -translate-y-20 rounded-control bg-brand px-4 py-2 text-sm font-medium text-white shadow-pop; /* escondido acima da tela (continua focável e legível por leitor de tela) */
     }
 
     .skip-link:focus {
         @apply translate-y-0; /* ao focar, aparece no canto superior esquerdo */
     }
 
-    /* ---------- Botões: .btn + uma variante (+ .btn-sm / .btn-icon) ---------- */
+    /* ---------- Botões: .btn + uma variante (+ .btn-sm / .btn-icon). Hierarquia: primário (indigo) > secundário (contorno) > fantasma > destrutivo ---------- */
     .btn {
         @apply inline-flex h-9 select-none items-center justify-center gap-2 whitespace-nowrap rounded-control px-3.5 text-sm font-medium transition-colors; /* base: 36px de altura, texto 13px */
     }
 
     .btn-primary {
-        @apply bg-brand text-white hover:bg-brand-dark; /* ação principal da tela (no máximo UMA por tela) */
+        @apply bg-brand text-white hover:bg-brand-dark active:bg-brand-pressed; /* ação principal da tela (no máximo UMA por tela): branco sobre indigo = 12,19:1 */
     }
 
     .btn-secondary {
-        @apply border border-line-strong bg-card text-ink hover:bg-ink/5; /* ação secundária: branca com borda */
+        @apply border border-line-control bg-card text-brand hover:bg-brand-soft active:bg-brand-tint; /* ação secundária: branca, contorno de 3,4:1 e texto indigo */
     }
 
     .btn-ghost {
-        @apply text-ink-soft hover:bg-ink/5 hover:text-ink; /* ação discreta: sem fundo nem borda */
+        @apply text-ink-soft hover:bg-interactive/[0.06] hover:text-ink; /* ação terciária e botão de ícone: sem fundo nem borda */
     }
 
     .btn-danger {
-        @apply bg-danger text-white hover:bg-danger/90; /* ação destrutiva (definida para uso futuro; hoje nenhuma tela tem exclusão) */
+        @apply bg-danger text-white hover:bg-danger/90; /* ação destrutiva (definida para uso futuro; hoje nenhuma tela tem exclusão): branco sobre vermelho = 6,54:1 */
     }
 
     .btn-sm {
@@ -87,17 +87,17 @@
     }
 
     .input {
-        @apply block h-9 w-full rounded-control border border-line-strong bg-card px-3 text-sm text-ink transition-colors; /* campo de 36px, igual aos botões */
+        @apply block h-9 w-full rounded-control border border-line-control bg-card px-3 text-sm text-ink transition-colors; /* campo de 36px, igual aos botões; borda de 3,4:1 (antes era 1,5:1) */
     }
 
-    .input:hover {
-        @apply border-ink-muted; /* borda mais forte ao passar o mouse */
+    .input:hover:not(:focus) {
+        @apply border-ink-muted; /* borda mais forte ao passar o mouse (REVISÃO: não quando o campo está focado, senão o hover apagava a borda do foco) */
     }
 
     .input:focus {
         outline: none; /* o foco do campo é a borda + halo abaixo, não o anel padrão */
-        border-color: rgb(var(--brand));
-        box-shadow: 0 0 0 3px rgb(var(--brand) / 0.18); /* halo suave na cor do acento */
+        border-color: rgb(var(--color-focus-ring)); /* borda na cor do foco */
+        box-shadow: 0 0 0 3px rgb(var(--color-focus-ring) / 0.2); /* halo suave */
     }
 
     .input:disabled {
@@ -111,24 +111,31 @@
 
     .input[aria-invalid="true"]:focus,
     .input.input-validation-error:focus {
-        box-shadow: 0 0 0 3px rgb(var(--danger) / 0.18); /* halo vermelho no foco */
+        box-shadow: 0 0 0 3px rgb(var(--color-feedback-danger) / 0.2); /* halo vermelho no foco */
     }
 
     select.input {
         @apply appearance-none pr-9; /* tira a seta do navegador e reserva espaço para a nossa */
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2357647a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E"); /* seta em cinza ink-3 */
+        /* EXCEÇÃO documentada: a cor da seta (%23596280 = text-muted) fica dentro da imagem SVG, que não aceita variável CSS. Se o token --color-text-muted mudar, troque aqui */
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23596280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
         background-repeat: no-repeat; /* uma seta só */
         background-position: right 0.625rem center; /* canto direito, centralizada na vertical */
         background-size: 1rem; /* 16px */
     }
 
+    .input::placeholder,
+    input::placeholder,
+    textarea::placeholder {
+        @apply text-ink-muted opacity-100; /* REVISÃO: placeholder com contraste de 6:1. Antes ficava em 2,5:1 porque o reset do Tailwind (input::placeholder, mais específico) vencia a regra genérica; aqui, na camada de componentes, ela vence o reset */
+    }
+
     .field-error {
-        @apply mt-1 text-xs text-danger; /* mensagem de erro abaixo do campo */
+        @apply mt-1 text-xs text-danger; /* mensagem de erro abaixo do campo (sempre acompanhada de texto, nunca só de cor) */
     }
 
     /* ---------- Cards ---------- */
     .card {
-        @apply rounded-card border border-line bg-card; /* superfície padrão: branca, borda de 1px, SEM sombra */
+        @apply rounded-card border border-line bg-card; /* superfície padrão: branca, borda decorativa de 1px, SEM sombra */
     }
 
     .card-header {
@@ -147,13 +154,13 @@
         @apply p-5; /* miolo do card */
     }
 
-    /* ---------- Indicador (KPI) ---------- */
+    /* ---------- Indicador (KPI): o card é neutro; só o tile do ícone carrega a cor da categoria ---------- */
     .kpi {
         @apply card flex items-center justify-between gap-4 px-5 py-4 transition-colors; /* card com número grande */
     }
 
     a.kpi:hover {
-        @apply border-line-strong bg-ink/[0.02]; /* quando o indicador é um link, reage ao mouse */
+        @apply border-line-control bg-surface-hover; /* quando o indicador é um link, reage ao mouse */
     }
 
     .kpi-label {
@@ -165,7 +172,15 @@
     }
 
     .kpi-icon {
-        @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-brand-soft text-lg text-brand; /* ícone discreto num quadrado suave */
+        @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-accent-tint text-lg text-brand; /* tile padrão (sky); o ícone é sempre indigo (10:1), nunca na cor do tile */
+    }
+
+    .kpi-icon-accent {
+        @apply bg-accent-tint; /* tom sky: contagens de pessoas */
+    }
+
+    .kpi-icon-highlight {
+        @apply bg-highlight-tint; /* tom coral: segunda categoria de informação (ícone continua indigo, 9,8:1) */
     }
 
     /* ---------- Cabeçalho de página ---------- */
@@ -178,7 +193,7 @@
     }
 
     .page-title {
-        @apply text-2xl font-semibold tracking-tight text-ink; /* título da página, 24px */
+        @apply text-2xl font-semibold tracking-tight text-brand; /* título da página, 24px, no indigo da identidade (12,2:1) */
     }
 
     .page-subtitle {
@@ -199,7 +214,7 @@
     }
 
     .table thead th {
-        @apply sticky top-0 z-10 border-b border-line bg-page px-4 py-2.5 text-left text-xs font-medium text-ink-soft; /* cabeçalho fixo no topo ao rolar */
+        @apply sticky top-0 z-10 border-b border-line bg-page px-4 py-2.5 text-left text-xs font-medium text-ink-soft; /* cabeçalho fixo no topo ao rolar; texto 7,6:1 sobre a página */
     }
 
     .table tbody td {
@@ -207,7 +222,7 @@
     }
 
     .table tbody tr:hover > td {
-        background-color: rgb(var(--ink) / 0.025); /* destaca a linha sob o mouse */
+        @apply bg-surface-hover; /* destaca a linha sob o mouse (texto auxiliar continua com 5,6:1) */
     }
 
     .table tbody tr:last-child > td {
@@ -215,11 +230,11 @@
     }
 
     .th-sort {
-        @apply inline-flex items-center gap-1 rounded-control text-ink-soft hover:text-ink; /* cabeçalho clicável para ordenar */
+        @apply inline-flex items-center gap-1 rounded-control text-ink-soft hover:text-brand; /* cabeçalho clicável para ordenar */
     }
 
     .th-sort[aria-current="true"] {
-        @apply text-ink; /* a coluna ordenada fica em destaque */
+        @apply text-brand; /* a coluna ordenada fica em destaque (a seta também muda: nunca só a cor) */
     }
 
     .cell-clamp {
@@ -245,7 +260,7 @@
             display: block; /* cada linha vira um bloco (card) */
             position: relative;
             padding: 0.75rem 1rem;
-            border-bottom: 1px solid rgb(var(--line));
+            border-bottom: 1px solid rgb(var(--color-border-default));
         }
 
         .table-stack tr[hidden] {
@@ -264,7 +279,7 @@
             margin-top: 0.5rem;
             font-size: 0.75rem;
             line-height: 1rem;
-            color: rgb(var(--ink-3));
+            color: rgb(var(--color-text-muted));
         }
 
         .table-stack td.cell-expand {
@@ -281,53 +296,74 @@
     }
 
     .pager-btn {
-        @apply inline-flex h-8 min-w-8 items-center justify-center rounded-control border border-line-strong bg-card px-2 text-sm text-ink-soft transition-colors hover:bg-ink/5; /* botão de página */
+        @apply inline-flex h-8 min-w-8 items-center justify-center rounded-control border border-line-control bg-card px-2 text-sm text-ink-soft transition-colors hover:bg-brand-soft hover:text-brand; /* botão de página */
     }
 
     .pager-btn[aria-current="page"] {
-        @apply border-brand bg-brand text-white hover:bg-brand; /* página atual */
+        @apply border-brand bg-brand text-white hover:bg-brand hover:text-white; /* página atual: indigo cheio (12,2:1) */
     }
 
     .pager-btn[aria-disabled="true"] {
         @apply pointer-events-none opacity-50; /* anterior/próxima indisponíveis */
     }
 
-    /* ---------- Chips, badges e links ---------- */
+    /* ---------- Chips, etiquetas (badge) e links ---------- */
     .chip {
-        @apply inline-flex items-center gap-1 rounded-full border border-line-strong bg-card py-1 pl-3 pr-1.5 text-xs text-ink; /* filtro ativo, removível */
+        @apply inline-flex items-center gap-1 rounded-full border border-line-control bg-card py-1 pl-3 pr-1.5 text-xs text-ink; /* filtro ativo, removível */
     }
 
     .chip-remove {
-        @apply flex h-5 w-5 items-center justify-center rounded-full text-ink-soft hover:bg-ink/10 hover:text-ink; /* "x" do chip */
+        @apply flex h-5 w-5 items-center justify-center rounded-full text-ink-soft hover:bg-interactive/10 hover:text-ink; /* "x" do chip */
     }
 
     .badge {
-        @apply inline-flex items-center gap-1 rounded-full bg-ink/5 px-2 py-0.5 text-xs font-medium text-ink-soft; /* etiqueta neutra (ex.: "9 módulos") */
+        @apply inline-flex items-center gap-1 rounded-full bg-support px-2 py-0.5 text-xs font-medium text-brand; /* etiqueta neutra em Pale Sky (ex.: "9 módulos"): indigo sobre pale-100 = 10,3:1 */
+    }
+
+    .badge-accent {
+        @apply bg-accent-tint text-brand; /* etiqueta em tom sky */
+    }
+
+    .badge-highlight {
+        @apply bg-highlight-tint text-ink; /* etiqueta de destaque: fundo coral claro e texto escuro (13:1); o ponto coral reforça sem depender só da cor */
+    }
+
+    .badge-highlight::before {
+        content: ""; /* ponto coral à esquerda do texto */
+        @apply h-1.5 w-1.5 rounded-full bg-highlight-graphic;
     }
 
     .link {
-        @apply font-medium text-brand underline-offset-2 hover:underline; /* link de texto */
+        @apply font-medium text-accent-strong underline decoration-accent-strong/40 underline-offset-2 hover:decoration-accent-strong; /* link de texto: azul sky escuro (5,5:1) COM sublinhado, para não depender só da cor */
     }
 
-    /* ---------- Avisos (alert) e notificações (toast) ---------- */
+    /* ---------- Avisos (alert) e notificações (toast): cores de FEEDBACK, independentes da identidade ---------- */
     .alert {
-        @apply flex items-start gap-3 rounded-control border px-3.5 py-3 text-sm; /* aviso fixo na página */
+        @apply flex items-start gap-3 rounded-control border px-3.5 py-3 text-sm; /* aviso fixo na página (sempre com ícone e texto) */
     }
 
     .alert-success {
-        @apply border-success/30 bg-success-soft text-success;
+        @apply border-success/30 bg-success-soft text-success; /* verde: texto 4,84:1 sobre o fundo */
     }
 
     .alert-danger {
-        @apply border-danger/30 bg-danger-soft text-danger;
+        @apply border-danger/30 bg-danger-soft text-danger; /* vermelho profundo: texto 5,98:1 (bem diferente do coral da identidade) */
     }
 
     .alert-warning {
-        @apply border-warning/30 bg-warning-soft text-warning;
+        @apply border-warning-icon/50 bg-warning-soft text-warning; /* atenção: fundo Banana suave e texto marrom escuro (7,45:1) */
+    }
+
+    .alert-warning > i {
+        @apply text-warning-icon; /* ícone ocre (3,2:1, mínimo para elementos gráficos) */
+    }
+
+    .alert-info {
+        @apply border-accent-strong/30 bg-accent-soft text-accent-strong; /* informação: sky escuro sobre sky claro (5,1:1) */
     }
 
     .alert-close {
-        @apply -my-1 -mr-1.5 ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-control opacity-70 hover:bg-ink/5 hover:opacity-100; /* botão de fechar o aviso */
+        @apply -my-1 -mr-1.5 ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-control opacity-70 hover:bg-interactive/[0.06] hover:opacity-100; /* botão de fechar o aviso */
     }
 
     .toast-region {
@@ -354,7 +390,7 @@
     }
 
     .empty-icon {
-        @apply mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-ink/5 text-xl text-ink-soft; /* ícone num círculo suave */
+        @apply mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-highlight-tint text-xl text-brand; /* ícone indigo num círculo coral claro (9,8:1) */
     }
 
     .empty-title {
@@ -377,7 +413,7 @@
 
     .is-loading::before {
         content: ""; /* spinner no centro */
-        @apply spinner absolute left-1/2 top-1/2 z-20 -ml-2 -mt-2 text-brand;
+        @apply spinner absolute left-1/2 top-1/2 z-20 -ml-2 -mt-2 text-accent-strong;
     }
 }
 
@@ -400,5 +436,40 @@
     .spinner,
     .btn[aria-busy="true"]::before {
         animation-duration: 1.5s; /* o spinner continua girando (é indicador de progresso), só mais devagar */
+    }
+}
+
+/* ---------- Modo de alto contraste do sistema (Windows "Contraste alto"): o navegador troca as cores por cores do sistema e apaga fundos.
+   Estas regras devolvem às formas o que antes só a cor de fundo comunicava (botões, cards, página atual, foco) ---------- */
+@media (forced-colors: active) {
+    .btn,
+    .pager-btn,
+    .chip,
+    .badge,
+    .kpi-icon,
+    .empty-icon {
+        border: 1px solid ButtonText; /* contorno visível em tudo que era só um bloco de cor */
+    }
+
+    .card,
+    .table-wrap,
+    .alert,
+    .toast,
+    .tooltip {
+        border: 1px solid CanvasText; /* limites de cards e avisos */
+    }
+
+    .input {
+        border-color: FieldText; /* borda do campo */
+    }
+
+    .pager-btn[aria-current="page"],
+    .th-sort[aria-current="true"] {
+        outline: 2px solid Highlight; /* página atual / coluna ordenada continuam marcadas sem depender do fundo */
+        outline-offset: 1px;
+    }
+
+    :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+        outline-color: Highlight; /* foco na cor de destaque do sistema */
     }
 }

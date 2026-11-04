@@ -1,5 +1,7 @@
 /* ============================================================
-   REVISÃO: estrutura do layout (sidebar, barra superior, conteúdo). Substitui o antigo wwwroot/css/site.css, agora usando os tokens.
+   REVISÃO: estrutura e cores do layout (sidebar, barra superior, conteúdo). Todas as cores vêm dos papéis de Styles/tokens.css.
+   A sidebar agora é Twilight Indigo com texto Pale Sky: é o elemento de identidade do sistema (cerca de 20% da tela no desktop);
+   o conteúdo continua claro e neutro.
    Dois modos com UM ponto de quebra (1024px = "lg" do Tailwind):
      - abaixo de 1024px: a sidebar é um painel FORA da tela que, ao abrir, SOBREPÕE o conteúdo (o #main nunca é empurrado);
      - a partir de 1024px: a sidebar fica fixa ao lado do conteúdo e pode ser recolhida para só ícones.
@@ -9,7 +11,7 @@
 
     /* ---------- Sidebar: celular e tablet (abaixo de 1024px) ---------- */
     #sidebar {
-        @apply fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-line bg-card; /* painel fixo, acima do overlay */
+        @apply fixed left-0 top-0 z-40 flex h-screen flex-col bg-sidebar-bg; /* painel fixo, acima do overlay, no indigo da identidade */
         width: min(var(--sidebar-w), 85vw); /* nunca mais de 85% da tela: sobra uma faixa do overlay para tocar e fechar */
         transform: translateX(-100%); /* fechada: fora da tela, à esquerda */
         visibility: hidden; /* fechada: some para o leitor de tela e sai da ordem do Tab */
@@ -22,24 +24,37 @@
         transition: transform 0.2s ease, visibility 0s; /* ao abrir fica visível na hora, senão o foco inicial falharia */
     }
 
+    #sidebar :where(a, button):focus-visible {
+        outline-color: rgb(var(--color-focus-ring-on-dark)); /* sobre o indigo o anel de foco é o Sky Surge (5,42:1); o sky escuro do resto do sistema não apareceria aqui */
+    }
+
     #main {
         margin-left: 0; /* o conteúdo ocupa a tela toda: a sidebar sobrepõe, não empurra */
     }
 
     .sidebar-header {
-        @apply flex h-16 shrink-0 items-center justify-between border-b border-line px-4; /* logo à esquerda, botão à direita */
+        @apply flex h-16 shrink-0 items-center justify-between border-b border-sidebar-line/10 px-4; /* logo à esquerda, botão à direita; divisor de 10% de branco */
     }
 
     .sidebar-brand {
-        @apply flex items-center gap-2.5 overflow-hidden; /* marca: quadrado azul com o ícone + nome */
+        @apply flex items-center gap-2.5 overflow-hidden; /* marca: quadrado sky com o ícone + nome */
     }
 
     .sidebar-logo {
-        @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-brand text-base text-white; /* o quadrado azul do logo */
+        @apply relative flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-accent text-base text-brand; /* quadrado Sky Surge com o ícone em indigo (5,42:1) */
+    }
+
+    .sidebar-logo::after {
+        content: ""; /* detalhe Banana Cream: um ponto no canto do logo (decorativo, 9,7:1 sobre o indigo) */
+        @apply absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-sidebar-bg bg-notice;
+    }
+
+    .topbar .sidebar-logo::after {
+        @apply border-card; /* na barra superior clara, o anel em volta do ponto é branco */
     }
 
     .sidebar-name {
-        @apply text-base font-semibold tracking-tight text-ink; /* "PSGN" */
+        @apply text-base font-semibold tracking-tight text-white; /* "PSGN" em branco sobre o indigo (12,2:1) */
     }
 
     .sidebar-nav {
@@ -51,36 +66,40 @@
     }
 
     .nav-group-label {
-        @apply mb-1 px-3 text-xs font-medium text-ink-muted; /* título do grupo ("Visão geral", "Acadêmico") */
+        @apply mb-1 px-3 text-xs font-medium text-sidebar-muted; /* título do grupo ("Visão geral", "Acadêmico"): 7,5:1 sobre o indigo */
     }
 
     .nav-link {
-        @apply relative flex h-9 items-center gap-3 rounded-control px-3 text-sm font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink; /* item de navegação */
+        @apply relative flex h-9 items-center gap-3 rounded-control px-3 text-sm font-medium text-sidebar-text transition-colors hover:bg-sidebar-hover hover:text-white; /* item de navegação: texto Pale Sky claro (9,1:1) */
     }
 
     .nav-link > i {
-        @apply shrink-0 text-base; /* ícone de 16px, sem encolher */
+        @apply shrink-0 text-base text-sidebar-icon; /* ícone de 16px em Pale Sky (7,1:1) */
     }
 
     .nav-link[aria-current="page"] {
-        @apply bg-ink/[0.06] text-ink; /* página atual: fundo neutro e texto escuro... */
+        @apply bg-sidebar-active text-white; /* página atual: fundo mais claro e texto branco (8,5:1)... */
     }
 
     .nav-link[aria-current="page"] > i {
-        @apply text-brand; /* ...com o ícone no acento... */
+        @apply text-accent; /* ...com o ícone em Sky Surge (3,8:1, mínimo de 3:1 para gráficos)... */
     }
 
     .nav-link[aria-current="page"]::before {
-        content: ""; /* ...e uma barra de acento na borda esquerda */
-        @apply absolute -left-3 top-2 bottom-2 w-[3px] rounded-r-full bg-brand;
+        content: ""; /* ...e uma barra Sky Surge na borda esquerda (nunca só a cor: há também fundo, peso e barra) */
+        @apply absolute -left-3 top-2 bottom-2 w-[3px] rounded-r-full bg-accent;
     }
 
     .sidebar-footer {
-        @apply hidden shrink-0 border-t border-line p-3; /* rodapé com o botão de recolher: só no desktop */
+        @apply hidden shrink-0 border-t border-sidebar-line/10 p-3; /* rodapé com o botão de recolher: só no desktop */
+    }
+
+    #sidebar .btn-ghost {
+        @apply text-sidebar-text hover:bg-sidebar-hover hover:text-white; /* botões "fantasma" dentro da sidebar (recolher, fechar) usam as cores da sidebar */
     }
 
     #sidebarOverlay {
-        @apply bg-ink/50; /* fundo escuro atrás do painel aberto (só existe abaixo de 1024px) */
+        @apply bg-overlay/50; /* fundo indigo escuro a 50% atrás do painel aberto (só existe abaixo de 1024px) */
     }
 
     /* ---------- Barra superior (celular e tablet) ---------- */
@@ -126,7 +145,7 @@
         }
 
         html.sidebar-collapsed .nav-group-label {
-            @apply mx-3 mb-2 h-px overflow-hidden bg-line text-transparent; /* o título do grupo vira uma linha divisória */
+            @apply mx-3 mb-2 h-px overflow-hidden bg-sidebar-line/10 text-transparent; /* o título do grupo vira uma linha divisória */
         }
 
         html.sidebar-collapsed .nav-link[aria-current="page"]::before {
@@ -139,5 +158,25 @@
     #sidebar,
     #main {
         transition: none !important; /* troca de estado instantânea para quem pede menos movimento */
+    }
+}
+
+/* Modo de alto contraste do sistema: o fundo indigo é apagado, então a página atual e o logo precisam de forma própria */
+@media (forced-colors: active) {
+    #sidebar {
+        border-right: 1px solid CanvasText; /* limite da sidebar */
+    }
+
+    .nav-link[aria-current="page"] {
+        outline: 2px solid Highlight; /* página atual marcada por contorno */
+        outline-offset: -2px;
+    }
+
+    .nav-link[aria-current="page"]::before {
+        background-color: Highlight; /* a barra do item ativo usa a cor de destaque do sistema */
+    }
+
+    .sidebar-logo {
+        border: 1px solid ButtonText; /* o quadrado do logo continua visível */
     }
 }
