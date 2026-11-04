@@ -90,9 +90,7 @@
         @apply absolute -left-3 top-2 bottom-2 w-[3px] rounded-r-full bg-accent;
     }
 
-    .sidebar-footer {
-        @apply hidden shrink-0 border-t border-sidebar-line/10 p-3; /* rodapé com o botão de recolher: só no desktop */
-    }
+    /* REVISÃO: removido o .sidebar-footer: o botão de recolher voltou para o cabeçalho */
 
     #sidebar .btn-ghost {
         @apply text-sidebar-text hover:bg-sidebar-hover hover:text-white; /* botões "fantasma" dentro da sidebar (recolher, fechar) usam as cores da sidebar */
@@ -126,21 +124,20 @@
             transition: margin-left 0.2s ease; /* anima junto com a sidebar */
         }
 
-        .sidebar-footer {
-            display: block; /* mostra o botão de recolher */
-        }
-
         /* Recolhida: só os ícones; os textos somem e os ícones ficam centralizados */
         html.sidebar-collapsed .sidebar-label {
             display: none;
         }
 
         html.sidebar-collapsed .sidebar-header {
-            @apply justify-center px-0; /* só o logo, centralizado */
+            @apply justify-center px-0; /* REVISÃO: só o botão de expandir, centralizado (em 72px não cabem o logo e o botão lado a lado) */
         }
 
-        html.sidebar-collapsed .nav-link,
-        html.sidebar-collapsed .sidebar-footer .btn {
+        html.sidebar-collapsed .sidebar-brand {
+            display: none; /* REVISÃO: recolhida, o logo dá lugar ao botão de expandir */
+        }
+
+        html.sidebar-collapsed .nav-link {
             @apply justify-center px-0; /* ícone no centro */
         }
 

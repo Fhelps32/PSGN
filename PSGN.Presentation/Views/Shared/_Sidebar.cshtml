@@ -1,4 +1,4 @@
-@* REVISÃO: sidebar do redesign. Itens agrupados por tema, item ativo com barra de acento, tooltip nos ícones quando recolhida e botão de recolher no rodapé.
+@* REVISÃO: sidebar do redesign. Itens agrupados por tema, item ativo com barra de acento, tooltip nos ícones quando recolhida e botão de recolher no cabeçalho.
    Abaixo de 1024px vira painel sobreposto (aberto pelo botão da _Topbar); a partir de 1024px fica fixa. Largura e deslocamento: Styles/layout.css; comportamento: wwwroot/js/sidebar.js *@
 @{
     var controller = ViewContext.RouteData.Values["controller"]?.ToString(); // controller da página atual, para destacar o item ativo
@@ -19,6 +19,13 @@
             <span class="sidebar-logo" aria-hidden="true"><i class="bi bi-mortarboard-fill"></i></span> @* ícone de capelo (decorativo) *@
             <span class="sidebar-name sidebar-label">PSGN</span> @* nome do sistema *@
         </div>
+
+        @* REVISÃO: desktop: recolhe/expande. Voltou para o cabeçalho, à direita do logo (estava no rodapé). Recolhida, o cabeçalho mostra só este botão (layout.css).
+           O sidebar.js mantém aria-expanded, aria-label e o tooltip com a ação atual ("Recolher menu"/"Expandir menu"); o tooltip aparece sempre, porque o botão só tem ícone *@
+        <button id="toggleSidebar" type="button" class="btn btn-ghost btn-icon hidden lg:inline-flex" aria-controls="sidebar" aria-expanded="true" aria-label="Recolher menu"
+                data-tooltip="Recolher menu" data-tooltip-placement="right">
+            <i class="bi bi-list text-xl" aria-hidden="true"></i> @* ícone de "hambúrguer", o mesmo do PSG *@
+        </button>
 
         @* Celular/tablet: fecha o painel *@
         <button id="closeSidebar" type="button" class="btn btn-ghost btn-icon lg:hidden" aria-controls="sidebar" aria-label="Fechar menu">
@@ -52,14 +59,7 @@
         }
     </nav>
 
-    @* Rodapé: recolher/expandir (só no desktop; o layout.css esconde abaixo de 1024px). O sidebar.js mantém aria-expanded, aria-label e o texto atualizados *@
-    <div class="sidebar-footer">
-        <button id="toggleSidebar" type="button" class="btn btn-ghost w-full justify-start" aria-controls="sidebar" aria-expanded="true" aria-label="Recolher menu"
-                data-tooltip="Recolher menu" data-tooltip-placement="right" data-tooltip-if="sidebar-collapsed">
-            <i class="bi bi-layout-sidebar-inset" aria-hidden="true"></i> @* ícone de painel lateral *@
-            <span class="sidebar-label">Recolher menu</span> @* texto; some quando recolhida *@
-        </button>
-    </div>
+    @* REVISÃO: o rodapé com o botão de recolher foi removido; o botão agora fica no cabeçalho *@
 </aside>
 
 @* Overlay: fundo escuro atrás do painel aberto; clicar nele fecha. Só existe abaixo de 1024px (lg:hidden) e começa escondido (atributo hidden) *@

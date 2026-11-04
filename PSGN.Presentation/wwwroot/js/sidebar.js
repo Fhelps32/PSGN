@@ -64,10 +64,8 @@
         if (!btnRecolher) return; // sem botão, nada mais a atualizar
         btnRecolher.setAttribute('aria-expanded', String(!recolhida)); // expandida = true
         var rotulo = recolhida ? 'Expandir menu' : 'Recolher menu'; // texto da ação que o botão faz AGORA
-        btnRecolher.setAttribute('aria-label', rotulo); // nome lido pelo leitor de tela (com a sidebar recolhida o texto visível some)
-        btnRecolher.dataset.tooltip = rotulo; // REVISÃO: o tooltip do ui.js (aparece só com a sidebar recolhida) acompanha a ação atual
-        var texto = btnRecolher.querySelector('.sidebar-label'); // REVISÃO: texto visível do botão (rodapé da sidebar)
-        if (texto) texto.textContent = rotulo; // REVISÃO: mantém o texto visível igual à ação atual
+        btnRecolher.setAttribute('aria-label', rotulo); // nome lido pelo leitor de tela (o botão só tem ícone)
+        btnRecolher.dataset.tooltip = rotulo; // REVISÃO: o tooltip do ui.js acompanha a ação atual. O texto visível que ficava no rodapé saiu: o botão agora fica no cabeçalho, só com ícone
     } // fim do aplicarRecolhida
 
     aplicarRecolhida(html.classList.contains('sidebar-collapsed')); // sincroniza os atributos com a classe que o _Layout já aplicou antes de desenhar
