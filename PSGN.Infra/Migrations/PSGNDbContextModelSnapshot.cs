@@ -245,8 +245,8 @@ namespace PSGN.Infra.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<TimeSpan>("Prazo")
-                        .HasColumnType("time");
+                    b.Property<long>("Prazo")
+                        .HasColumnType("bigint");
 
                     b.Property<bool>("Status")
                         .HasColumnType("bit");
