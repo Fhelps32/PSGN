@@ -44,11 +44,11 @@
     }
 
     .btn-secondary {
-        @apply border border-line-control bg-card text-brand hover:bg-brand-soft active:bg-brand-tint; /* ação secundária: branca, contorno de 3,4:1 e texto indigo */
+        @apply border border-line-control bg-card text-brand hover:border-accent-icon hover:bg-accent-soft active:bg-accent-tint; /* ação secundária: branca, contorno de 3,4:1 e texto indigo. REVISÃO: hover e clique em Sky Surge (fundo sky claro + contorno sky), antes indigo apagado */
     }
 
     .btn-ghost {
-        @apply text-ink-soft hover:bg-interactive/[0.06] hover:text-ink; /* ação terciária e botão de ícone: sem fundo nem borda */
+        @apply text-ink-soft hover:bg-accent-soft hover:text-brand; /* ação terciária e botão de ícone: sem fundo nem borda. REVISÃO: hover em Sky Surge claro com texto indigo (antes cinza) */
     }
 
     .btn-danger {
@@ -91,13 +91,13 @@
     }
 
     .input:hover:not(:focus) {
-        @apply border-ink-muted; /* borda mais forte ao passar o mouse (REVISÃO: não quando o campo está focado, senão o hover apagava a borda do foco) */
+        @apply border-brand/70; /* borda mais forte ao passar o mouse, REVISÃO: em indigo (não quando o campo está focado, senão o hover apagava a borda do foco) */
     }
 
     .input:focus {
         outline: none; /* o foco do campo é a borda + halo abaixo, não o anel padrão */
-        border-color: rgb(var(--color-focus-ring)); /* borda na cor do foco */
-        box-shadow: 0 0 0 3px rgb(var(--color-focus-ring) / 0.2); /* halo suave */
+        border-color: rgb(var(--color-focus-ring)); /* borda na cor do foco (sky escuro, 5,5:1) */
+        box-shadow: 0 0 0 3px rgb(var(--color-accent) / 0.35); /* REVISÃO: halo no Sky Surge ★ (antes o sky escuro a 20%, que mal aparecia) */
     }
 
     .input:disabled {
@@ -160,7 +160,7 @@
     }
 
     a.kpi:hover {
-        @apply border-line-control bg-surface-hover; /* quando o indicador é um link, reage ao mouse */
+        @apply border-accent-icon bg-surface-hover; /* quando o indicador é um link, reage ao mouse (REVISÃO: contorno sky) */
     }
 
     .kpi-label {
@@ -172,15 +172,15 @@
     }
 
     .kpi-icon {
-        @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-accent-tint text-lg text-brand; /* tile padrão (sky); o ícone é sempre indigo (10:1), nunca na cor do tile */
+        @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-accent text-lg text-brand; /* REVISÃO: tile na cor CHEIA da paleta (antes um tom pastel quase branco); o ícone é sempre indigo, nunca na cor do tile */
     }
 
     .kpi-icon-accent {
-        @apply bg-accent-tint; /* tom sky: contagens de pessoas */
+        @apply bg-accent; /* Sky Surge ★: contagens de pessoas (ícone indigo 5,42:1) */
     }
 
     .kpi-icon-highlight {
-        @apply bg-highlight-tint; /* tom coral: segunda categoria de informação (ícone continua indigo, 9,8:1) */
+        @apply bg-highlight; /* Vibrant Coral ★: segunda categoria de informação (ícone indigo 3,99:1, acima dos 3:1 exigidos para ícones) */
     }
 
     /* ---------- Cabeçalho de página ---------- */
@@ -189,7 +189,7 @@
     }
 
     .page-eyebrow {
-        @apply mb-1 text-xs font-medium text-ink-muted; /* grupo da sidebar a que a página pertence */
+        @apply mb-1 text-xs font-semibold text-accent-strong; /* grupo da sidebar a que a página pertence. REVISÃO: em Sky Surge escuro (antes cinza) */
     }
 
     .page-title {
@@ -214,7 +214,7 @@
     }
 
     .table thead th {
-        @apply sticky top-0 z-10 border-b border-line bg-page px-4 py-2.5 text-left text-xs font-medium text-ink-soft; /* cabeçalho fixo no topo ao rolar; texto 7,6:1 sobre a página */
+        @apply sticky top-0 z-10 border-b border-line bg-support px-4 py-2.5 text-left text-xs font-semibold text-brand; /* cabeçalho fixo no topo ao rolar. REVISÃO: fundo Pale Sky e texto indigo (10,3:1), antes cinza sobre cinza */
     }
 
     .table tbody td {
@@ -296,7 +296,7 @@
     }
 
     .pager-btn {
-        @apply inline-flex h-8 min-w-8 items-center justify-center rounded-control border border-line-control bg-card px-2 text-sm text-ink-soft transition-colors hover:bg-brand-soft hover:text-brand; /* botão de página */
+        @apply inline-flex h-8 min-w-8 items-center justify-center rounded-control border border-line-control bg-card px-2 text-sm text-ink-soft transition-colors hover:border-accent-icon hover:bg-accent-soft hover:text-brand; /* botão de página. REVISÃO: hover em Sky Surge (antes indigo apagado) */
     }
 
     .pager-btn[aria-current="page"] {
@@ -313,7 +313,7 @@
     }
 
     .chip-remove {
-        @apply flex h-5 w-5 items-center justify-center rounded-full text-ink-soft hover:bg-interactive/10 hover:text-ink; /* "x" do chip */
+        @apply flex h-5 w-5 items-center justify-center rounded-full text-ink-soft hover:bg-accent-tint hover:text-brand; /* "x" do chip (REVISÃO: hover sky) */
     }
 
     .badge {
@@ -348,15 +348,24 @@
 
     /* ---------- REVISÃO: lista mestre-detalhe (item clicável que seleciona um registro). Chama-se list-row e NÃO list-item porque o Tailwind já tem o utilitário list-item (display: list-item), que vencia este componente e empilhava o avatar sobre o texto ---------- */
     .list-row {
-        @apply flex items-center gap-3 rounded-control border border-line px-3 py-2.5 transition-colors hover:border-line-control hover:bg-surface-hover; /* item da lista */
+        @apply relative flex items-center gap-3 rounded-control border border-line px-3 py-2.5 transition-colors hover:border-accent-icon hover:bg-surface-hover; /* item da lista. REVISÃO: hover em Sky Surge (contorno sky + fundo sky claro) */
     }
 
     .list-row[aria-current="true"] {
-        @apply border-brand bg-brand-soft; /* item selecionado: contorno indigo (não é só a cor: o aria-current e o painel ao lado mudam juntos) */
+        @apply border-accent-icon bg-accent-soft; /* REVISÃO: item selecionado no mesmo padrão do item ativo da sidebar: fundo sky claro, contorno sky e barra Sky Surge à esquerda (não é só a cor: o aria-current e o painel ao lado mudam juntos) */
+    }
+
+    .list-row[aria-current="true"]::before {
+        content: ""; /* barra de acento na borda esquerda, igual à da sidebar */
+        @apply absolute -left-px bottom-2 top-2 w-[3px] rounded-r-full bg-accent-icon;
     }
 
     .avatar {
-        @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-tint text-xs font-semibold text-brand; /* iniciais do nome num círculo sky (10:1) */
+        @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-brand; /* REVISÃO: iniciais num círculo Sky Surge ★ cheio (indigo sobre sky = 5,42:1; antes um sky pastel) */
+    }
+
+    .list-row[aria-current="true"] .avatar {
+        @apply bg-brand text-white; /* REVISÃO: no aluno selecionado o avatar inverte para indigo cheio (12,19:1) */
     }
 
     /* ---------- REVISÃO: lista de definições (rótulo em cima, valor embaixo), usada nos detalhes da tentativa ---------- */
@@ -445,12 +454,12 @@
     }
 
     .dialog-actions {
-        @apply flex justify-end gap-2 rounded-b-card border-t border-line bg-page px-5 py-3; /* Cancelar à esquerda, ação à direita */
+        @apply flex justify-end gap-2 rounded-b-card border-t border-line bg-subtle px-5 py-3; /* Cancelar à esquerda, ação à direita (REVISÃO: rodapé em Pale Sky claro) */
     }
 
     /* ---------- Tooltip (um único elemento criado pelo ui.js) ---------- */
     .tooltip {
-        @apply pointer-events-none fixed z-[60] rounded-control bg-ink px-2 py-1 text-xs font-medium text-white shadow-pop; /* balão escuro, posicionado pelo JavaScript */
+        @apply pointer-events-none fixed z-[60] rounded-control bg-brand px-2 py-1 text-xs font-medium text-white shadow-pop; /* balão Twilight Indigo (12,19:1), posicionado pelo JavaScript */
     }
 
     /* ---------- Estado vazio ---------- */

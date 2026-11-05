@@ -53,6 +53,7 @@
 
         /* Pale Sky: apoio (bordas, divisores, fundos suaves, texto da sidebar) */
         --palette-pale-50: 237 247 251; /* #EDF7FB */
+        --palette-pale-75: 230 241 246; /* #E6F1F6 REVISÃO: fundo da página, Pale Sky claro (o fundo antigo #F3F8FA era quase branco e escondia a paleta) */
         --palette-pale-100: 222 238 245; /* #DEEEF5 etiqueta neutra */
         --palette-pale-200: 209 227 235; /* #D1E3EB divisor decorativo */
         --palette-pale-300: 173 202 214; /* #ADCAD6 ★ ícones da sidebar (7,08:1 no indigo) */
@@ -96,20 +97,20 @@
         --color-notice-icon: var(--palette-banana-600); /* ícone e borda do aviso */
 
         /* Superfícies */
-        --color-surface-page: var(--palette-neutral-page); /* fundo da página e cabeçalho de tabela */
+        --color-surface-page: var(--palette-pale-75); /* REVISÃO: fundo da página em Pale Sky claro (antes neutro quase branco): os cards brancos se destacam e a paleta aparece na tela toda */
         --color-surface-primary: 255 255 255; /* cards, tabelas e campos */
-        --color-surface-secondary: var(--palette-neutral-subtle); /* áreas de apoio */
-        --color-surface-hover: var(--palette-neutral-row-hover); /* linha de tabela em hover */
+        --color-surface-secondary: var(--palette-pale-50); /* REVISÃO: áreas de apoio (rodapé de diálogo, curso aberto) em Pale Sky bem claro */
+        --color-surface-hover: var(--palette-sky-50); /* REVISÃO: hover de linha, item de lista e curso agora em Sky Surge claro (antes cinza): o estado interativo carrega a paleta */
         --color-surface-support: var(--palette-pale-100); /* etiquetas e áreas de apoio (Pale Sky) */
 
         /* Texto */
-        --color-text-primary: var(--palette-neutral-900); /* títulos e dados */
+        --color-text-primary: var(--palette-indigo-700); /* REVISÃO: títulos e dados em Twilight Indigo ★ (12,19:1 no branco; antes um quase-preto neutro) */
         --color-text-secondary: var(--palette-neutral-700); /* corpo e rótulos */
         --color-text-muted: var(--palette-neutral-600); /* auxiliar e placeholder: o mais claro permitido (5,6:1 no mínimo) */
         --color-text-on-brand: 255 255 255; /* texto sobre a cor da marca */
 
         /* Bordas */
-        --color-border-default: var(--palette-pale-200); /* divisor decorativo (card, linha): não precisa de contraste */
+        --color-border-default: var(--palette-pale-300); /* REVISÃO: borda de card e divisores no Pale Sky ★ (#ADCAD6; antes um passo mais claro, quase invisível). Decorativa: não precisa de 3:1 */
         --color-border-control: var(--palette-pale-600); /* borda de campo e de botão secundário: 3,42:1, mínimo exigido para componentes */
 
         /* Interação */
@@ -133,14 +134,16 @@
         --color-feedback-danger: 179 38 30; /* #B3261E erro e ação destrutiva (6,54:1 no branco); bem mais escuro que o coral, para nunca se confundirem */
         --color-feedback-danger-soft: 255 242 239; /* #FFF2EF (texto 5,98:1) */
 
-        /* Gráficos: 6 séries validadas (CVD ΔE mínimo 9,9; luminosidade e croma na faixa). São hex porque o Chart.js precisa da cor pronta.
-           Ordem FIXA (a cor segue a série, nunca o ranking). A legenda com valores é obrigatória: sky, ouro e teal ficam abaixo de 3:1 no branco */
-        --color-chart-1: #3F4F94; /* indigo */
-        --color-chart-2: #ED6A5A; /* coral */
-        --color-chart-3: #41BBD9; /* sky */
-        --color-chart-4: #C79F00; /* ouro, derivado do banana */
-        --color-chart-5: #8E8CD8; /* lavanda, derivada do indigo */
-        --color-chart-6: #1FA896; /* teal, matiz do sky deslocado */
+        /* Gráficos: REVISÃO: 6 séries tiradas SÓ dos matizes da paleta (saíram a lavanda e o teal, que não eram da identidade). Validadas com o
+           validate_palette.js da skill de dataviz: luminosidade e croma na faixa, CVD ΔE mínimo 17,3, visão normal 23,4. São hex porque o Chart.js precisa da cor pronta.
+           Ordem FIXA (a cor segue a série, nunca o ranking). A legenda com valores é obrigatória: sky e banana ficam abaixo de 3:1 no branco.
+           O indigo ★ (#29335C) não vira fatia: é escuro e pouco saturado demais para uma série (reprova no validador), então entra o passo 500 */
+        --color-chart-1: #3F4F94; /* Twilight Indigo (passo 500) */
+        --color-chart-2: #ED6A5A; /* Vibrant Coral ★ */
+        --color-chart-3: #41BBD9; /* Sky Surge ★ */
+        --color-chart-4: #C79F00; /* Banana Cream escurecida (a ★ some no branco) */
+        --color-chart-5: #7B8CE0; /* Twilight Indigo claro */
+        --color-chart-6: #B8503F; /* Vibrant Coral profundo */
 
         /* ================= CAMADA 3: MEDIDAS ================= */
         --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; /* se a Inter falhar, cai na fonte do sistema */

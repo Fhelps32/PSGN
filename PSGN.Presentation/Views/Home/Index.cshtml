@@ -49,9 +49,9 @@ else
     <div class="space-y-3">
         @foreach (var curso in Model.Cursos) // percorre os cursos do ViewModel
         {
-            <details class="card group">
-                <summary class="flex cursor-pointer list-none items-center gap-3 rounded-card px-5 py-4 hover:bg-ink/[0.02] [&::-webkit-details-marker]:hidden"> @* a linha toda é clicável; some o triângulo padrão do navegador *@
-                    <i class="bi bi-chevron-right text-ink-muted transition-transform group-open:rotate-90" aria-hidden="true"></i> @* seta que gira quando aberto *@
+            <details class="card group open:border-accent-icon"> @* REVISÃO: curso aberto ganha contorno sky *@
+                <summary class="flex cursor-pointer list-none items-center gap-3 rounded-card px-5 py-4 transition-colors hover:bg-surface-hover group-open:rounded-b-none group-open:bg-accent-soft [&::-webkit-details-marker]:hidden"> @* a linha toda é clicável; some o triângulo padrão do navegador. REVISÃO: hover e cabeçalho aberto em Sky Surge claro (antes um cinza solto, fora dos tokens) *@
+                    <i class="bi bi-chevron-right text-accent-icon transition-transform group-open:rotate-90" aria-hidden="true"></i> @* seta que gira quando aberto (REVISÃO: em sky) *@
                     <div class="min-w-0 flex-1">
                         <h2 class="break-words text-base font-semibold text-ink">@curso.Nome</h2> @* nome do curso *@
                         <p class="mt-0.5 text-xs text-ink-soft"><i class="bi bi-person mr-1" aria-hidden="true"></i>@curso.Coordenador</p> @* coordenador *@

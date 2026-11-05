@@ -50,7 +50,7 @@
     }
 
     .topbar .sidebar-logo::after {
-        @apply border-card; /* na barra superior clara, o anel em volta do ponto é branco */
+        @apply border-sidebar-bg; /* REVISÃO: a barra superior agora é indigo, então o anel em volta do ponto Banana também é indigo */
     }
 
     .sidebar-name {
@@ -102,7 +102,19 @@
 
     /* ---------- Barra superior (celular e tablet) ---------- */
     .topbar {
-        @apply sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-line bg-card px-4 lg:hidden; /* só abaixo de 1024px: botão do menu + título da página */
+        @apply sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-sidebar-line/10 bg-sidebar-bg px-4 lg:hidden; /* só abaixo de 1024px: botão do menu + título da página. REVISÃO: Twilight Indigo, igual à sidebar (antes branca) */
+    }
+
+    .topbar-title {
+        @apply truncate text-base font-semibold text-white; /* REVISÃO: título da página em branco sobre o indigo (12,19:1) */
+    }
+
+    .topbar .btn-ghost {
+        @apply text-sidebar-text hover:bg-sidebar-hover hover:text-white; /* REVISÃO: botão do menu com as cores da sidebar */
+    }
+
+    .topbar :where(a, button):focus-visible {
+        outline-color: rgb(var(--color-focus-ring-on-dark)); /* REVISÃO: foco em Sky Surge sobre o indigo (5,42:1) */
     }
 
     /* ---------- Área de conteúdo ---------- */

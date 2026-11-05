@@ -60,7 +60,7 @@
                 data: dados.lineData, // eixo Y
                 borderColor: corLinha, // linha de 2px no azul da marca
                 borderWidth: 2, // espessura fina
-                backgroundColor: rgb('--color-brand-primary', 0.08), // preenchimento bem leve abaixo da linha
+                backgroundColor: rgb('--color-accent', 0.18), // REVISÃO: preenchimento em Sky Surge ★ a 18% (antes o indigo a 8%, que virava um cinza apagado)
                 tension: 0.3, // suaviza a curva
                 fill: true, // preenche abaixo da linha
                 pointRadius: 3, // pontos pequenos
