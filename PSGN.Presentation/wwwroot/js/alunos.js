@@ -1,20 +1,46 @@
-// REVISÃO: alunos.js da página mestre-detalhe. Faz duas coisas:
+// REVISÃO: alunos.js da página mestre-detalhe (distribuição da página de Alunos do PSG). Faz três coisas:
 // (1) mantém o aluno selecionado visível na lista (selecionar recarrega a página e a lista voltaria ao topo), como na página de Alunos do PSG;
-// (2) preenche o select de Módulo quando o Curso muda (a "cascata" Curso -> Módulo).
-// O código que expandia as linhas da tabela antiga saiu: o histórico agora fica no painel da direita.
+// (2) busca instantânea dos módulos do aluno selecionado (card "Módulos");
+// (3) preenche o select de Módulo quando o Curso muda (a "cascata" Curso -> Módulo).
 (function () { // função que roda na hora e isola as variáveis, para não vazarem para o resto do site
     'use strict'; // modo estrito: o JavaScript avisa de erros bobos em vez de ignorá-los
 
     // ===== (1) Aluno selecionado visível =====
-    var lista = document.getElementById('listaAlunos'); // a lista com rolagem própria (desktop)
-    var selecionado = lista && lista.querySelector('[aria-current="true"]'); // o item do aluno mostrado à direita
+    var lista = document.getElementById('listaAlunos'); // a lista com rolagem própria (o <ul> é "relative", então offsetTop é a posição dentro dele)
+    var selecionado = lista && lista.querySelector('[aria-current="true"]'); // o link do aluno mostrado à direita
     if (lista && selecionado && lista.scrollHeight > lista.clientHeight) { // só quando a lista tem rolagem própria
-        var topo = selecionado.offsetTop - lista.offsetTop; // posição do item dentro da lista
-        if (topo + selecionado.offsetHeight > lista.clientHeight) // o item está abaixo da parte visível?
-            lista.scrollTop = topo - (lista.clientHeight - selecionado.offsetHeight) / 2; // rola SÓ a lista (não a página) até centralizar o item
+        var item = selecionado.parentElement; // o <li> que envolve o link
+        var topo = item.offsetTop; // posição do item dentro da lista
+        if (topo + item.offsetHeight > lista.clientHeight) // o item está abaixo da parte visível?
+            lista.scrollTop = topo - (lista.clientHeight - item.offsetHeight) / 2; // rola SÓ a lista (não a página) até centralizar o item
     } // fim do if
 
-    // ===== (2) Cascata Curso -> Módulo no filtro =====
+    // ===== (1b) Em telas estreitas o detalhe fica ABAIXO da lista: ao escolher um aluno, rola até ele =====
+    // (no desktop o detalhe já está ao lado da lista, então a página não precisa rolar)
+    var detalhe = document.getElementById('detalhe-aluno'); // o painel do aluno selecionado
+    var escolheu = /[?&]alunoid=/i.test(window.location.search); // a URL traz o aluno escolhido (o nome do parâmetro vem em qualquer caixa)
+    if (detalhe && escolheu && !window.matchMedia('(min-width: 1280px)').matches) // só abaixo de 1280px (o breakpoint xl do layout)
+        detalhe.scrollIntoView(); // o scroll-mt-20 do painel deixa folga para a barra superior
+
+    // ===== (2) Busca instantânea dos módulos do aluno =====
+    var campoModulo = document.getElementById('buscaModulo'); // campo "Pesquisar" do card Módulos
+    var listaModulos = document.getElementById('listaModulos'); // a lista de módulos (já vem toda renderizada)
+    if (campoModulo && listaModulos) { // só existe quando o aluno selecionado tem módulos
+        var modulos = Array.prototype.slice.call(listaModulos.querySelectorAll('.modulo-item')); // um item por módulo
+        var aviso = document.getElementById('semResultadoModulo'); // "Nenhum módulo encontrado"
+        campoModulo.addEventListener('input', function () { // a cada letra digitada
+            var termo = campoModulo.value.trim().toLowerCase(); // texto buscado, sem diferenciar maiúsculas
+            var visiveis = 0; // quantos módulos sobraram
+            modulos.forEach(function (m) { // cada módulo
+                var bate = !termo || m.dataset.nome.toLowerCase().indexOf(termo) !== -1; // o nome contém o texto?
+                m.hidden = !bate; // esconde (atributo hidden) quem não bate
+                if (bate) visiveis++; // conta quem ficou
+            }); // fim do forEach
+            if (aviso) aviso.classList.toggle('hidden', visiveis > 0); // mostra o aviso só quando não sobrou nenhum
+        }); // fim do input
+    } // fim do if
+
+    // ===== (3) Cascata Curso -> Módulo no filtro =====
     var form = document.querySelector('form[data-url-modulos]'); // formulário de filtro (a URL do endpoint vem no atributo data-url-modulos)
     if (!form) return; // página sem o filtro: nada a fazer
 

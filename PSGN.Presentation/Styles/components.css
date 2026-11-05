@@ -346,12 +346,12 @@
         @apply bg-warning-soft text-warning; /* atenção: prazo vencido, nota abaixo de 7 (7,45:1) */
     }
 
-    /* ---------- REVISÃO: lista mestre-detalhe (item clicável que seleciona um registro) ---------- */
-    .list-item {
+    /* ---------- REVISÃO: lista mestre-detalhe (item clicável que seleciona um registro). Chama-se list-row e NÃO list-item porque o Tailwind já tem o utilitário list-item (display: list-item), que vencia este componente e empilhava o avatar sobre o texto ---------- */
+    .list-row {
         @apply flex items-center gap-3 rounded-control border border-line px-3 py-2.5 transition-colors hover:border-line-control hover:bg-surface-hover; /* item da lista */
     }
 
-    .list-item[aria-current="true"] {
+    .list-row[aria-current="true"] {
         @apply border-brand bg-brand-soft; /* item selecionado: contorno indigo (não é só a cor: o aria-current e o painel ao lado mudam juntos) */
     }
 
@@ -362,6 +362,11 @@
     /* ---------- REVISÃO: lista de definições (rótulo em cima, valor embaixo), usada nos detalhes da tentativa ---------- */
     .facts {
         @apply grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3; /* 2 colunas no celular, 3 a partir de 640px */
+    }
+
+    /* REVISÃO: versão para colunas estreitas (o painel de 26rem da página de Alunos): sempre 2 colunas, mesmo em tela larga (o sm: do .facts olha a janela, não a coluna) */
+    .facts.facts-compact {
+        @apply grid-cols-2 sm:grid-cols-2;
     }
 
     .facts dt {

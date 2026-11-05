@@ -1,25 +1,27 @@
 ﻿@using System.Globalization
 @using PSGN.Domain.Enum
 @model AlunosViewModel
-@* REVISÃO: página de Alunos refeita no layout mestre-detalhe da página de Alunos do PSG, com o design system do PSGN:
-   - à esquerda: busca (nome ou matrícula), filtros e a lista paginada de alunos;
-   - à direita: o aluno selecionado, o MÓDULO ATUAL com a tentativa em curso (prazo, prova, nota e as ações do administrador)
-     e o HISTÓRICO de todos os módulos em que entrou, com todas as tentativas de cada um.
-   As regras (nota mínima 7, prazo de 40 dias, quais ações são permitidas) vêm prontas do domínio; a view só mostra *@
+@* REVISÃO: página de Alunos redistribuída EXATAMENTE como a do PSG (Views/Aluno/Index.cshtml), com o design system do PSGN:
+   - faixa de filtros na horizontal (busca, curso, módulo e botões) em cima da coluna da esquerda;
+   - coluna da ESQUERDA larga: um card de altura fixa com "Quantidade de alunos" + paginação no topo e a lista de alunos rolando por dentro;
+   - coluna da DIREITA estreita e fixa (26rem, como os 420px do PSG): identificação do aluno -> módulo atual -> card "Módulos" com busca instantânea
+     (cada módulo mostra todas as suas tentativas) -> card vermelho com as tentativas reprovadas (o "Módulos Reprovados" do PSG).
+   As regras (nota mínima 7, prazo de 40 dias, quais ações são permitidas) continuam vindo prontas do domínio; a view só mostra *@
 @{
     ViewData["Title"] = "Alunos"; // título da aba e da página
     ViewData["Section"] = "Acadêmico"; // grupo da sidebar (lido pela partial _PageHeader)
-    ViewData["Subtitle"] = "Módulo atual e histórico de tentativas de cada aluno"; // subtítulo (lido pela partial _PageHeader)
+    ViewData["Subtitle"] = "Acompanhamento dos alunos, do módulo atual e das tentativas de cada módulo"; // subtítulo (lido pela partial _PageHeader)
 
     var ptBr = CultureInfo.GetCultureInfo("pt-BR"); // nota com vírgula (7,5), independente do idioma do servidor
     var sel = Model.Selecionado; // aluno do painel da direita (null quando a lista está vazia)
     var filtrando = !string.IsNullOrWhiteSpace(Model.Nome) || Model.CursoId.HasValue || Model.ModuloId.HasValue; // algum filtro ativo?
+    var pag = Model.Paginacao; // atalho: dados da paginação
 
     // Rota de cada aluno da lista: os filtros e a página atuais + o aluno escolhido
     Dictionary<string, string> RotaDoAluno(int idAluno)
     {
-        var rota = new Dictionary<string, string>(Model.Paginacao.Rota); // filtros ativos
-        rota["Pagina"] = Model.Paginacao.PaginaAtual.ToString(); // mesma página
+        var rota = new Dictionary<string, string>(pag.Rota); // filtros ativos
+        rota["Pagina"] = pag.PaginaAtual.ToString(); // mesma página
         rota["AlunoId"] = idAluno.ToString(); // o aluno clicado
         return rota; // pronto para asp-all-route-data
     }
@@ -39,14 +41,14 @@
         <input type="hidden" name="nome" value="@Model.Nome" />
         <input type="hidden" name="cursoId" value="@Model.CursoId" />
         <input type="hidden" name="moduloId" value="@Model.ModuloId" />
-        <input type="hidden" name="pagina" value="@Model.Paginacao.PaginaAtual" />
+        <input type="hidden" name="pagina" value="@pag.PaginaAtual" />
     }
 
-    // REVISÃO: ações do administrador sobre uma tentativa aberta, num lugar só: usadas no card do módulo atual e no histórico
+    // REVISÃO: ações do administrador sobre uma tentativa aberta, num lugar só: usadas no card do módulo atual e na lista de módulos
     // (módulos antigos também podem ter tentativa aberta). Só aparecem as permitidas pelo domínio; todas pedem confirmação, porque não se desfazem
     async Task AcoesDaTentativa(AlunosTentativaItem t, bool compacto) // async: o Razor exige quando a função tem tag helpers (os <form asp-action>)
     {
-        var tamanho = compacto ? " btn-sm" : ""; // no histórico os botões são menores
+        var tamanho = compacto ? " btn-sm" : ""; // na lista de módulos os botões são menores
         if (t.PodeAprovar)
         {
             <form asp-action="Aprovar" method="post" data-loading data-confirm-titulo="Aprovar a tentativa?" data-confirm-acao="Aprovar"
@@ -75,6 +77,17 @@
             </form>
         }
     }
+
+    // REVISÃO: o botão de abrir nova tentativa também é usado em dois lugares (módulo atual e módulos antigos)
+    async Task BotaoAbrirTentativa(int idAlunoModulo, bool compacto)
+    {
+        <form asp-action="AbrirTentativa" method="post" data-loading data-confirm-titulo="Abrir nova tentativa?" data-confirm-acao="Abrir tentativa"
+              data-confirm="Uma nova tentativa será aberta neste módulo, com prazo de 40 dias a partir de hoje.">
+            <input type="hidden" name="idAlunoModulo" value="@idAlunoModulo" />
+            @{ CamposDeRetorno(); }
+            <button type="submit" class="btn btn-secondary@(compacto ? " btn-sm" : "")" data-loading-text="Abrindo…"><i class="bi bi-plus-lg" aria-hidden="true"></i><span data-loading-label>Abrir nova tentativa</span></button>
+        </form>
+    }
 }
 
 @functions {
@@ -83,7 +96,7 @@
     {
         EnumSituacaoTentativa.AguardandoProva => "Aguardando prova",
         EnumSituacaoTentativa.ProvaEmCorrecao => "Prova sem nota",
-        EnumSituacaoTentativa.AguardandoAprovacao => "Nota ≥ 7 · aguardando aprovação",
+        EnumSituacaoTentativa.AguardandoAprovacao => "Aguardando aprovação",
         EnumSituacaoTentativa.AguardandoReprovacao => "Nota abaixo de 7",
         EnumSituacaoTentativa.Aprovada => "Aprovada",
         EnumSituacaoTentativa.Reprovada => "Reprovada",
@@ -101,6 +114,23 @@
         _ => "badge badge-danger" // reprovada (pela nota ou por inatividade)
     };
 
+    // REVISÃO: situação do MÓDULO (o "Status" da inscrição no PSG): aprovado, em andamento (tem tentativa aberta), sem tentativa ou reprovado
+    static string ModuloTexto(AlunosModuloItem m)
+    {
+        if (m.Aprovado) return "Aprovado";
+        if (m.TentativaAberta is not null) return "Em andamento";
+        return m.Tentativas.Count == 0 ? "Sem tentativa" : "Reprovado";
+    }
+
+    static string ModuloClasse(AlunosModuloItem m)
+    {
+        if (m.Aprovado) return "badge badge-success";
+        if (m.TentativaAberta is not null) return "badge badge-accent";
+        return m.Tentativas.Count == 0 ? "badge" : "badge badge-danger";
+    }
+
+    static bool Reprovada(AlunosTentativaItem t) => t.Situacao is EnumSituacaoTentativa.Reprovada or EnumSituacaoTentativa.ReprovadaPorInatividade; // fechada como reprovada
+
     static string Data(DateTime? d) => d?.ToString("dd/MM/yyyy") ?? "—"; // data ou traço
     static string Ordinal(int n) => $"{n}ª"; // 1ª, 2ª...
     static string Prazo(int dias) => dias switch { > 1 => $"faltam {dias} dias", 1 => "falta 1 dia", 0 => "vence hoje", -1 => "vencido há 1 dia", _ => $"vencido há {-dias} dias" }; // texto do prazo
@@ -109,45 +139,44 @@
 @* ===== Cabeçalho da página ===== *@
 <div class="page-header">
     <partial name="_PageHeader" /> @* grupo + título + subtítulo *@
-    <p role="status" class="badge text-sm"> @* total dinâmico: muda conforme o filtro *@
-        <i class="bi bi-people" aria-hidden="true"></i>
-        <span class="tabular-nums">@Model.TotalAlunos</span>&nbsp;@(Model.TotalAlunos == 1 ? "aluno" : "alunos")@(filtrando ? " nos filtros aplicados" : "")
-    </p>
 </div>
 
 @* Resultado das ações do administrador (TempData -> toast) *@
 @if (ViewData["MensagemAluno"] is string mensagem) { <template data-toast="success">@mensagem</template> }
 @if (ViewData["ErroAluno"] is string erro) { <template data-toast="danger">@erro</template> }
 
-@* Duas colunas a partir de 1280px: lista estreita à esquerda, detalhe largo à direita. Abaixo disso, a lista vem em cima e o detalhe embaixo *@
-<div class="grid items-start gap-6 xl:grid-cols-[22rem_minmax(0,1fr)]">
+@* minmax(0,1fr) e não 1fr: com 1fr a coluna da esquerda não encolhe abaixo da largura do formulário de filtros e empurra a da direita para fora da tela.
+   Duas colunas a partir de 1280px (lista larga + detalhe de 26rem, como o PSG); abaixo disso, a lista vem em cima e o detalhe embaixo *@
+<div class="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_26rem]">
 
-    @* ===================== COLUNA ESQUERDA: busca, filtros e lista ===================== *@
+    @* ===================== COLUNA ESQUERDA: filtros e lista ===================== *@
     <section class="flex min-w-0 flex-col gap-4" aria-label="Lista de alunos">
 
-        @* GET: o filtro vai na URL; data-url-modulos é lido pelo alunos.js para a cascata Curso -> Módulo *@
-        <form asp-action="Index" method="get" data-url-modulos="@Url.Action("GetModulosPorCurso", "Alunos")" class="card space-y-3 p-4">
-            <div>
+        @* Busca e filtros vão ao servidor (GET): a lista é paginada, então filtrar só o que está na tela daria resultado errado.
+           data-url-modulos é lido pelo alunos.js para a cascata Curso -> Módulo *@
+        <form asp-action="Index" method="get" data-url-modulos="@Url.Action("GetModulosPorCurso", "Alunos")" class="flex flex-wrap items-end gap-3">
+            <div class="min-w-[11rem] flex-1">
                 <label asp-for="Nome" class="field-label">Nome ou matrícula</label>
-                <input asp-for="Nome" type="search" placeholder="Pesquisar" autocomplete="off" class="input" />
+                <div class="relative">
+                    <i class="bi bi-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" aria-hidden="true"></i>
+                    <input asp-for="Nome" type="search" placeholder="Pesquisar" autocomplete="off" class="input pl-9" />
+                </div>
             </div>
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1"> @* lado a lado no tablet; empilhados na coluna estreita do desktop *@
-                <div>
-                    <label asp-for="CursoId" class="field-label">Curso</label>
-                    <select asp-for="CursoId" asp-items="Model.Cursos" class="input">
-                        <option value="">Todos os cursos</option>
-                    </select>
-                </div>
-                <div>
-                    <label asp-for="ModuloId" class="field-label">Módulo</label>
-                    @* Desabilitado até escolher um curso (um select desabilitado não vai na URL) *@
-                    <select asp-for="ModuloId" asp-items="Model.Modulos" disabled="@(!Model.CursoId.HasValue)" class="input">
-                        <option value="">Todos os módulos</option>
-                    </select>
-                </div>
+            <div class="w-full sm:w-44">
+                <label asp-for="CursoId" class="field-label">Curso</label>
+                <select asp-for="CursoId" asp-items="Model.Cursos" class="input">
+                    <option value="">Todos os cursos</option>
+                </select>
+            </div>
+            <div class="w-full sm:w-44">
+                <label asp-for="ModuloId" class="field-label">Módulo</label>
+                @* Desabilitado até escolher um curso (um select desabilitado não vai na URL) *@
+                <select asp-for="ModuloId" asp-items="Model.Modulos" disabled="@(!Model.CursoId.HasValue)" class="input">
+                    <option value="">Todos os módulos</option>
+                </select>
             </div>
             <div class="flex gap-2">
-                <button type="submit" class="btn btn-primary flex-1"><i class="bi bi-search" aria-hidden="true"></i>Filtrar</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-funnel" aria-hidden="true"></i>Filtrar</button>
                 @if (filtrando)
                 {
                     <a asp-action="Index" class="btn btn-secondary">Limpar</a>
@@ -155,31 +184,63 @@
             </div>
         </form>
 
-        <div class="card flex flex-col p-3">
+        @* Altura fixa (acompanha a janela em telas grandes) e rolagem só na lista: o total e a paginação ficam sempre à vista e a página não precisa
+           rolar inteira para ver os alunos. 17rem = padding do main + cabeçalho da página + faixa de filtros *@
+        <div class="card flex h-[36rem] flex-col p-4 xl:h-[calc(100vh-17rem)] xl:min-h-[28rem]">
+
+            @* Total (dinâmico: muda conforme o filtro) + paginação *@
+            <div class="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-3">
+                <p role="status" class="inline-flex items-center gap-2 rounded-control border border-line px-3 py-1.5 text-sm text-ink-soft">
+                    <i class="bi bi-people" aria-hidden="true"></i>
+                    Quantidade de alunos:
+                    <span class="font-semibold tabular-nums text-ink">@Model.TotalAlunos</span>
+                </p>
+
+                @if (pag.TotalPaginas > 1)
+                {
+                    var inicio = Math.Max(1, pag.PaginaAtual - 1); // janela de páginas: atual ± 1, sem passar dos limites
+                    var fim = Math.Min(pag.TotalPaginas, pag.PaginaAtual + 1); // fim da janela
+
+                    <nav aria-label="Paginação" class="flex items-center gap-1">
+                        <a asp-action="Index" asp-all-route-data="pag.Rota" asp-route-Pagina="@Math.Max(1, pag.PaginaAtual - 1)" class="pager-btn"
+                           aria-label="Página anterior" aria-disabled="@(pag.TemAnterior ? null : "true")" tabindex="@(pag.TemAnterior ? null : "-1")"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+                        @for (var p = inicio; p <= fim; p++) // números de página
+                        {
+                            <a asp-action="Index" asp-all-route-data="pag.Rota" asp-route-Pagina="@p" class="pager-btn tabular-nums"
+                               aria-label="Página @p" aria-current="@(p == pag.PaginaAtual ? "page" : null)">@p</a>
+                        }
+                        <a asp-action="Index" asp-all-route-data="pag.Rota" asp-route-Pagina="@Math.Min(pag.TotalPaginas, pag.PaginaAtual + 1)" class="pager-btn"
+                           aria-label="Próxima página" aria-disabled="@(pag.TemProxima ? null : "true")" tabindex="@(pag.TemProxima ? null : "-1")"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                        <span class="ml-2 text-xs text-ink-muted">Página @pag.PaginaAtual de @pag.TotalPaginas</span>
+                    </nav>
+                }
+            </div>
+
             @if (Model.Alunos.Count == 0)
             {
                 <partial name="_EmptyState" model='new EstadoVazioViewModel { Icone = filtrando ? "bi-search" : "bi-people", Titulo = filtrando ? "Nenhum aluno encontrado" : "Nenhum aluno sincronizado", Descricao = filtrando ? "Tente outros termos ou limpe os filtros." : "Os alunos chegam do Moodle pela sincronização, na tela de Cursos." }' />
             }
             else
             {
-                @* Rolagem só na lista no desktop: a página não precisa rolar inteira para ver os alunos *@
-                <ul id="listaAlunos" class="flex flex-col gap-1.5 overflow-y-auto pr-0.5 xl:max-h-[calc(100vh-24rem)] xl:min-h-[16rem]">
+                @* "relative" para o alunos.js medir a posição dos itens dentro da lista *@
+                <ul id="listaAlunos" class="relative flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
                     @foreach (var aluno in Model.Alunos)
                     {
-                        <li>
-                            <a asp-action="Index" asp-all-route-data="RotaDoAluno(aluno.IdAluno)" asp-fragment="detalhe-aluno"
-                               class="list-item" aria-current="@(aluno.Selecionado ? "true" : null)">
-                                <span class="avatar" aria-hidden="true">@Iniciais(aluno.Nome)</span> @* iniciais (decorativo) *@
+                        <li class="shrink-0">
+                            <a asp-action="Index" asp-all-route-data="RotaDoAluno(aluno.IdAluno)"
+                               class="list-row gap-3 px-4 py-3" aria-current="@(aluno.Selecionado ? "true" : null)">
+                                <span class="avatar h-10 w-10 text-sm" aria-hidden="true">@Iniciais(aluno.Nome)</span> @* iniciais (decorativo) *@
                                 <span class="min-w-0 flex-1">
-                                    <span class="block truncate text-sm font-medium text-ink" title="@aluno.Nome">@aluno.Nome</span>
-                                    <span class="block truncate text-xs text-ink-soft">Matrícula @aluno.Matricula</span>
-                                    <span class="block truncate text-xs text-ink-muted" title="@aluno.ModuloAtual">@(string.IsNullOrEmpty(aluno.ModuloAtual) ? "Sem módulo" : aluno.ModuloAtual)</span>
+                                    <span class="block truncate text-sm font-semibold text-ink" title="@aluno.Nome">@aluno.Nome <span class="font-normal text-ink-muted">/ @(string.IsNullOrWhiteSpace(aluno.Matricula) ? "sem matrícula" : aluno.Matricula)</span></span>
+                                    <span class="mt-0.5 block truncate text-xs text-ink-soft" title="@aluno.ModuloAtual">Módulo atual: <span class="text-ink">@(string.IsNullOrEmpty(aluno.ModuloAtual) ? "nenhum" : aluno.ModuloAtual)</span></span>
+                                </span>
+                                <span class="hidden max-w-[12rem] shrink-0 text-right text-xs text-ink-soft sm:block"> @* curso à direita, como no PSG *@
+                                    <span class="block truncate" title="@aluno.Curso">@aluno.Curso</span>
                                 </span>
                             </a>
                         </li>
                     }
                 </ul>
-                <div class="mt-3 border-t border-line pt-3"><partial name="_Paginacao" model="Model.Paginacao" /></div>
             }
         </div>
     </section>
@@ -189,42 +250,46 @@
         @if (sel is null)
         {
             <div class="card">
-                <partial name="_EmptyState" model='new EstadoVazioViewModel { Icone = "bi-person-lines-fill", Titulo = "Nenhum aluno selecionado", Descricao = "Escolha um aluno na lista para ver o módulo atual e o histórico de tentativas." }' />
+                <partial name="_EmptyState" model='new EstadoVazioViewModel { Icone = "bi-person-lines-fill", Titulo = "Nenhum aluno selecionado", Descricao = "Escolha um aluno na lista para ver o módulo atual e as tentativas de cada módulo." }' />
             </div>
         }
         else
         {
-            @* ----- Identificação ----- *@
-            <div class="card flex flex-wrap items-start justify-between gap-4 p-5">
-                <div class="flex min-w-0 items-center gap-3">
-                    <span class="avatar h-11 w-11 text-sm" aria-hidden="true">@Iniciais(sel.Nome)</span>
-                    <div class="min-w-0">
-                        <h2 class="break-words text-lg font-semibold text-ink">@sel.Nome</h2> @* nome inteiro, sem cortar *@
-                        <p class="text-xs text-ink-soft">Matrícula @sel.Matricula · @sel.Curso</p>
-                    </div>
+            var atual = sel.ModuloAtual; // o último módulo em que entrou (null se não entrou em nenhum)
+            var aberta = atual?.TentativaAberta; // a tentativa em curso nele, se houver
+            var totalReprovadas = sel.Historico.Sum(m => m.TentativasReprovadas); // quantas tentativas reprovadas o aluno tem, somando os módulos
+
+            @* ----- Identificação (como o PSG: nome e matrícula à esquerda; curso e situação à direita) ----- *@
+            <div class="card flex items-start justify-between gap-4 p-5">
+                <div class="min-w-0">
+                    <h2 class="break-words text-lg font-semibold leading-snug text-ink">@sel.Nome</h2> @* nome inteiro, sem cortar *@
+                    <p class="mt-1 text-xs text-ink-soft">Matrícula: <span class="text-ink">@(string.IsNullOrWhiteSpace(sel.Matricula) ? "não informada" : sel.Matricula)</span></p>
                 </div>
-                <p class="badge text-sm"><i class="bi bi-check2-circle" aria-hidden="true"></i><span class="tabular-nums">@sel.ModulosConcluidos/@sel.TotalModulosCurso</span>&nbsp;módulos concluídos</p>
+                <div class="max-w-[11rem] shrink-0 text-right">
+                    <p class="text-xs font-medium uppercase tracking-wide text-ink-muted">Curso</p>
+                    <p class="mt-0.5 break-words text-xs text-ink">@sel.Curso</p>
+                    @if (aberta is not null)
+                    {
+                        <span class="@SituacaoClasse(aberta.Situacao) mt-1.5">@SituacaoTexto(aberta.Situacao)</span> @* o "status" do aluno: a situação da tentativa em curso *@
+                    }
+                    else if (atual is not null && atual.Aprovado)
+                    {
+                        <span class="badge badge-success mt-1.5">Módulo aprovado</span>
+                    }
+                </div>
             </div>
 
             @* ----- Módulo atual ----- *@
             <div class="card p-5">
                 <p class="page-eyebrow">Módulo atual</p>
-                @if (sel.ModuloAtual is null)
+                @if (atual is null)
                 {
                     <p class="text-sm text-ink-soft">Este aluno ainda não entrou em nenhum módulo.</p>
                 }
                 else
                 {
-                    var atual = sel.ModuloAtual; // o último módulo em que entrou
-                    var aberta = atual.TentativaAberta; // a tentativa em curso, se houver
-
-                    <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <h3 class="break-words text-base font-semibold text-ink">@atual.Nome</h3>
-                            <p class="mt-0.5 text-xs text-ink-soft">Entrou em @Data(atual.DataInscricao)@(atual.TentativasReprovadas > 0 ? $" · {atual.TentativasReprovadas} {(atual.TentativasReprovadas == 1 ? "reprovação" : "reprovações")}" : "")</p>
-                        </div>
-                        @if (atual.Aprovado) { <span class="badge badge-success"><i class="bi bi-check-circle" aria-hidden="true"></i>Aprovado</span> }
-                    </div>
+                    <h3 class="break-words text-base font-semibold text-ink">@atual.Nome</h3>
+                    <p class="mt-0.5 text-xs text-ink-soft">Entrou em @Data(atual.DataInscricao)@(atual.TentativasReprovadas > 0 ? $" · {atual.TentativasReprovadas} {(atual.TentativasReprovadas == 1 ? "reprovação" : "reprovações")}" : "")</p>
 
                     @if (aberta is not null)
                     {
@@ -232,10 +297,9 @@
                         <div class="mt-4 rounded-control border border-line bg-page p-4">
                             <div class="mb-3 flex flex-wrap items-center gap-2">
                                 <span class="text-sm font-semibold text-ink">@Ordinal(aberta.Numero) tentativa</span>
-                                <span class="@SituacaoClasse(aberta.Situacao)">@SituacaoTexto(aberta.Situacao)</span>
                                 @if (aberta.PrazoVencido) { <span class="badge badge-warning"><i class="bi bi-alarm" aria-hidden="true"></i>Prazo vencido</span> }
                             </div>
-                            <dl class="facts">
+                            <dl class="facts facts-compact">
                                 <div><dt>Abertura</dt><dd class="tabular-nums">@Data(aberta.DataInicio)</dd></div>
                                 <div><dt>Prazo (40 dias)</dt><dd class="tabular-nums">@Data(aberta.DataLimite) <span class="block text-xs font-normal @(aberta.PrazoVencido ? "text-warning" : "text-ink-soft")">@Prazo(aberta.DiasParaOPrazo)</span></dd></div>
                                 <div><dt>Prova</dt><dd class="tabular-nums">@(aberta.DataProva is null ? "Não realizada" : Data(aberta.DataProva))</dd></div>
@@ -246,7 +310,7 @@
                             @if (aberta.PodeAprovar || aberta.PodeReprovar || aberta.PodeReprovarPorInatividade)
                             {
                                 <div class="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
-                                    @{ await AcoesDaTentativa(aberta, compacto: false); } @* REVISÃO: as ações vêm do bloco único definido no topo da view *@
+                                    @{ await AcoesDaTentativa(aberta, compacto: false); }
                                 </div>
                             }
                         </div>
@@ -259,115 +323,150 @@
                     {
                         <div class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-control border border-line bg-page p-4">
                             <p class="text-sm text-ink-soft">Nenhuma tentativa em curso neste módulo.</p>
-                            <form asp-action="AbrirTentativa" method="post" data-loading data-confirm-titulo="Abrir nova tentativa?" data-confirm-acao="Abrir tentativa"
-                                  data-confirm="Uma nova tentativa será aberta neste módulo, com prazo de 40 dias a partir de hoje.">
-                                <input type="hidden" name="idAlunoModulo" value="@atual.IdAlunoModulo" />
-                                @{ CamposDeRetorno(); }
-                                <button type="submit" class="btn btn-secondary" data-loading-text="Abrindo…"><i class="bi bi-plus-lg" aria-hidden="true"></i><span data-loading-label>Abrir nova tentativa</span></button>
-                            </form>
+                            @{ await BotaoAbrirTentativa(atual.IdAlunoModulo, compacto: false); }
                         </div>
                     }
                 }
             </div>
 
-            @* ----- Histórico: todos os módulos em que entrou, com todas as tentativas de cada um ----- *@
-            <div class="card">
-                <div class="card-header pb-4">
-                    <div>
-                        <h2 class="card-title">Histórico de módulos</h2>
-                        <p class="card-desc">Todas as tentativas de cada módulo, da mais antiga para a mais recente</p>
+            @* ----- Módulos do aluno (o card "Módulos" do PSG): todos os módulos em que entrou e todas as tentativas de cada um ----- *@
+            <div class="card p-5">
+                <div class="mb-4 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        <h2 class="card-title">Módulos</h2>
+                        <span class="badge tabular-nums" title="Módulos concluídos / módulos do curso">@sel.ModulosConcluidos/@sel.TotalModulosCurso</span>
                     </div>
+
+                    @* Busca instantânea: os módulos do aluno já vêm todos na página (alunos.js) *@
+                    @if (sel.Historico.Count > 0)
+                    {
+                        <div class="relative">
+                            <label for="buscaModulo" class="sr-only">Pesquisar módulo</label>
+                            <i class="bi bi-search pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-muted" aria-hidden="true"></i>
+                            <input type="search" id="buscaModulo" placeholder="Pesquisar" autocomplete="off" class="input h-8 w-36 pl-8 text-xs" />
+                        </div>
+                    }
                 </div>
 
                 @if (sel.Historico.Count == 0)
                 {
-                    <p class="border-t border-line px-5 py-6 text-sm text-ink-soft">Sem módulos ainda.</p>
+                    <p class="py-6 text-center text-sm text-ink-soft">Este aluno ainda não tem módulos.</p>
                 }
                 else
                 {
-                    @foreach (var modulo in sel.Historico) // do módulo mais recente ao mais antigo
-                    {
-                        <details class="group border-t border-line" open="@modulo.Atual"> @* o módulo atual começa aberto *@
-                            <summary class="flex cursor-pointer list-none items-center gap-3 px-5 py-3.5 hover:bg-surface-hover [&::-webkit-details-marker]:hidden">
-                                <i class="bi bi-chevron-right text-ink-muted transition-transform group-open:rotate-90" aria-hidden="true"></i>
-                                <span class="min-w-0 flex-1">
-                                    <span class="block break-words text-sm font-medium text-ink">@modulo.Nome</span>
-                                    <span class="block text-xs text-ink-soft">Entrou em @Data(modulo.DataInscricao)@(modulo.DataFim is null ? "" : $" · concluído em {Data(modulo.DataFim)}") · @modulo.Tentativas.Count @(modulo.Tentativas.Count == 1 ? "tentativa" : "tentativas")</span>
-                                </span>
-                                <span class="flex shrink-0 flex-wrap justify-end gap-1.5">
-                                    @if (modulo.Atual) { <span class="badge badge-accent">Atual</span> }
-                                    @if (modulo.Aprovado) { <span class="badge badge-success">Aprovado</span> }
-                                    @if (modulo.TentativasReprovadas > 0) { <span class="badge badge-danger tabular-nums">@modulo.TentativasReprovadas @(modulo.TentativasReprovadas == 1 ? "reprovação" : "reprovações")</span> }
-                                </span>
-                            </summary>
-
-                            <div class="px-5 pb-4">
-                                @if (modulo.Tentativas.Count == 0)
-                                {
-                                    <p class="text-sm text-ink-soft">Nenhuma tentativa aberta neste módulo.</p>
-                                }
-                                else
-                                {
-                                    <div class="table-wrap">
-                                        <table class="table table-stack" role="table">
-                                            <caption class="sr-only">Tentativas no módulo @modulo.Nome</caption>
-                                            <thead role="rowgroup">
-                                                <tr role="row">
-                                                    <th scope="col" role="columnheader">Tentativa</th>
-                                                    <th scope="col" role="columnheader">Abertura</th>
-                                                    <th scope="col" role="columnheader">Prazo</th>
-                                                    <th scope="col" role="columnheader">Prova</th>
-                                                    <th scope="col" role="columnheader" class="text-right">Nota</th>
-                                                    <th scope="col" role="columnheader">Situação</th>
-                                                    <th scope="col" role="columnheader">Encerrada</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody role="rowgroup">
-                                                @foreach (var t in modulo.Tentativas) // da 1ª à mais recente
-                                                {
-                                                    <tr role="row">
-                                                        <td role="cell" class="font-medium text-ink">@Ordinal(t.Numero)</td>
-                                                        <td role="cell" data-label="Abertura" class="tabular-nums text-ink-soft">@Data(t.DataInicio)</td>
-                                                        <td role="cell" data-label="Prazo" class="tabular-nums text-ink-soft">@Data(t.DataLimite)@if (t.PrazoVencido) { <span class="badge badge-warning ml-1">Vencido</span> }</td>
-                                                        <td role="cell" data-label="Prova" class="tabular-nums text-ink-soft">@Data(t.DataProva)</td>
-                                                        <td role="cell" data-label="Nota" class="tabular-nums font-medium text-ink md:text-right">@(t.Nota?.ToString("0.0#", ptBr) ?? "—")</td>
-                                                        <td role="cell" data-label="Situação"><span class="@SituacaoClasse(t.Situacao)">@SituacaoTexto(t.Situacao)</span></td>
-                                                        <td role="cell" data-label="Encerrada" class="tabular-nums text-ink-soft">@(t.Aberta ? "Em curso" : Data(t.DataFim))</td>
-                                                    </tr>
-                                                }
-                                            </tbody>
-                                        </table>
+                    <ul id="listaModulos" class="flex max-h-[32rem] flex-col gap-2 overflow-y-auto pr-1">
+                        @foreach (var modulo in sel.Historico) // do módulo mais recente ao mais antigo
+                        {
+                            <li class="modulo-item rounded-control border border-line px-4 py-3" data-nome="@modulo.Nome">
+                                <div class="flex items-start gap-3">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="break-words text-sm font-semibold text-ink">@modulo.Nome</p>
+                                        <p class="mt-1 text-xs text-ink-soft">Inscrição: <span class="text-ink">@Data(modulo.DataInscricao)</span></p>
+                                        <p class="text-xs text-ink-soft">Fim: <span class="text-ink">@Data(modulo.DataFim)</span></p>
                                     </div>
-                                }
-
-                                @* REVISÃO: tentativa aberta num módulo que NÃO é o atual (ex.: aluno inscrito em vários módulos ao mesmo tempo): as mesmas ações do card acima *@
-                                @if (!modulo.Atual && modulo.TentativaAberta is { } abertaAntiga && (abertaAntiga.PodeAprovar || abertaAntiga.PodeReprovar || abertaAntiga.PodeReprovarPorInatividade))
-                                {
-                                    <div class="mt-3 flex flex-wrap items-center gap-2">
-                                        <span class="text-xs text-ink-soft">@Ordinal(abertaAntiga.Numero) tentativa em curso:</span>
-                                        @{ await AcoesDaTentativa(abertaAntiga, compacto: true); }
+                                    <div class="shrink-0 text-right">
+                                        <span class="@ModuloClasse(modulo)">@ModuloTexto(modulo)</span>
+                                        @if (modulo.NotaFinal is not null)
+                                        {
+                                            <p class="mt-1.5 text-sm font-bold tabular-nums text-ink"><span class="mr-1 text-xs font-normal text-ink-muted">Nota</span>@modulo.NotaFinal.Value.ToString("0.0#", ptBr)</p>
+                                        }
                                     </div>
-                                }
+                                </div>
 
-                                @* Módulo sem tentativa em curso e não aprovado (o atual já mostra o botão no card acima) *@
-                                @if (modulo.PodeAbrirTentativa && !modulo.Atual)
-                                {
-                                    <form asp-action="AbrirTentativa" method="post" class="mt-3" data-loading data-confirm-titulo="Abrir nova tentativa?" data-confirm-acao="Abrir tentativa"
-                                          data-confirm="Uma nova tentativa será aberta neste módulo, com prazo de 40 dias a partir de hoje.">
-                                        <input type="hidden" name="idAlunoModulo" value="@modulo.IdAlunoModulo" />
-                                        @{ CamposDeRetorno(); }
-                                        <button type="submit" class="btn btn-secondary btn-sm" data-loading-text="Abrindo…"><i class="bi bi-plus-lg" aria-hidden="true"></i><span data-loading-label>Abrir nova tentativa</span></button>
-                                    </form>
-                                }
-                            </div>
-                        </details>
-                    }
+                                @* Todas as tentativas do módulo, da primeira à mais recente *@
+                                <div class="mt-3 border-t border-line pt-3">
+                                    <p class="mb-1 text-xs font-medium text-ink-muted">@modulo.Tentativas.Count @(modulo.Tentativas.Count == 1 ? "tentativa" : "tentativas")</p>
+                                    @if (modulo.Tentativas.Count == 0)
+                                    {
+                                        <p class="text-xs text-ink-soft">Nenhuma tentativa aberta neste módulo.</p>
+                                    }
+                                    else
+                                    {
+                                        <ol class="flex flex-col divide-y divide-line">
+                                            @foreach (var t in modulo.Tentativas)
+                                            {
+                                                <li class="py-2 first:pt-0 last:pb-0">
+                                                    <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                                                        <span class="text-sm font-medium text-ink">@Ordinal(t.Numero) tentativa</span>
+                                                        <span class="flex flex-wrap justify-end gap-1">
+                                                            @if (t.PrazoVencido) { <span class="badge badge-warning">Prazo vencido</span> }
+                                                            <span class="@SituacaoClasse(t.Situacao)">@SituacaoTexto(t.Situacao)</span>
+                                                        </span>
+                                                    </div>
+                                                    <p class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-ink-soft">
+                                                        <span>Abertura <span class="tabular-nums text-ink">@Data(t.DataInicio)</span></span>
+                                                        <span>Prazo <span class="tabular-nums text-ink">@Data(t.DataLimite)</span></span>
+                                                        <span>Prova <span class="tabular-nums text-ink">@Data(t.DataProva)</span></span>
+                                                        <span>Nota <span class="font-semibold tabular-nums text-ink">@(t.Nota?.ToString("0.0#", ptBr) ?? "—")</span></span>
+                                                        @if (t.Aberta) { <span class="font-medium text-ink">Em curso</span> } else { <span>Encerrada <span class="tabular-nums text-ink">@Data(t.DataFim)</span></span> } @* REVISÃO: aberta não tem data de encerramento *@
+                                                    </p>
+                                                </li>
+                                            }
+                                        </ol>
+                                    }
+
+                                    @* REVISÃO: tentativa aberta num módulo que NÃO é o atual (ex.: aluno inscrito em vários módulos ao mesmo tempo): as mesmas ações do card "Módulo atual" *@
+                                    @if (!modulo.Atual && modulo.TentativaAberta is { } abertaAntiga && (abertaAntiga.PodeAprovar || abertaAntiga.PodeReprovar || abertaAntiga.PodeReprovarPorInatividade))
+                                    {
+                                        <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
+                                            @{ await AcoesDaTentativa(abertaAntiga, compacto: true); }
+                                        </div>
+                                    }
+
+                                    @* Módulo antigo sem tentativa em curso e não aprovado (o atual mostra o botão no card acima) *@
+                                    @if (modulo.PodeAbrirTentativa && !modulo.Atual)
+                                    {
+                                        <div class="mt-3 border-t border-line pt-3">
+                                            @{ await BotaoAbrirTentativa(modulo.IdAlunoModulo, compacto: true); }
+                                        </div>
+                                    }
+                                </div>
+                            </li>
+                        }
+                    </ul>
+
+                    <p id="semResultadoModulo" class="hidden py-6 text-center text-xs text-ink-soft">Nenhum módulo encontrado.</p>
                 }
             </div>
+
+            @* ----- Tentativas reprovadas (o "Módulos Reprovados" do PSG): destacado em vermelho porque é o ponto que pede atenção. Só aparece quando há reprovação ----- *@
+            @if (totalReprovadas > 0)
+            {
+                <div class="card overflow-hidden border-danger/30">
+                    <div class="flex items-center gap-3 border-b border-danger/20 bg-danger-soft px-5 py-4">
+                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-card text-danger"><i class="bi bi-exclamation-triangle text-lg" aria-hidden="true"></i></span>
+                        <div class="min-w-0 flex-1">
+                            <h2 class="text-sm font-semibold leading-tight text-danger">Tentativas reprovadas</h2>
+                            <p class="mt-0.5 text-xs text-danger">Pela nota ou por inatividade</p>
+                        </div>
+                        <span class="inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-danger px-2 text-xs font-bold tabular-nums text-white">@totalReprovadas</span>
+                    </div>
+
+                    <ul class="flex max-h-72 flex-col divide-y divide-line overflow-y-auto">
+                        @foreach (var modulo in sel.Historico)
+                        {
+                            @foreach (var t in modulo.Tentativas.Where(Reprovada))
+                            {
+                                <li class="flex items-center gap-3 px-5 py-3">
+                                    <div class="min-w-0 flex-1">
+                                        <p class="break-words text-sm font-semibold text-ink">@modulo.Nome</p>
+                                        <p class="mt-1 text-xs text-ink-soft">@Ordinal(t.Numero) tentativa · @(t.Situacao == EnumSituacaoTentativa.ReprovadaPorInatividade ? "por inatividade" : "pela nota")</p>
+                                        <p class="text-xs text-ink-soft">Abertura: <span class="text-ink">@Data(t.DataInicio)</span> <span class="mx-1 text-ink-muted">|</span> Encerrada: <span class="text-ink">@Data(t.DataFim)</span></p>
+                                    </div>
+                                    <div class="shrink-0 text-center">
+                                        <p class="text-xs font-medium uppercase tracking-wide text-ink-muted">Nota</p>
+                                        <p class="text-xl font-bold leading-tight tabular-nums text-danger">@(t.Nota?.ToString("0.0#", ptBr) ?? "—")</p>
+                                    </div>
+                                </li>
+                            }
+                        }
+                    </ul>
+                </div>
+            }
         }
     </section>
 </div>
 
 @section Scripts {
-    <script src="~/js/alunos.js" asp-append-version="true"></script> @* cascata Curso -> Módulo e aluno selecionado visível na lista *@
+    <script src="~/js/alunos.js" asp-append-version="true"></script> @* aluno selecionado visível, busca dos módulos e cascata Curso -> Módulo *@
 }
