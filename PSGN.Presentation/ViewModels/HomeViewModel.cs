@@ -1,9 +1,10 @@
 ﻿namespace PSGN.Presentation.ViewModels
 {
+    // ViewModel da tela de Cursos (HomeController -> Views/Home/Index)
     public class HomeViewModel
     {
-        public string? MensagemSincronizacao { get; set; } //REVISÃO: resumo exibido depois de clicar em "Sincronizar"
-        public string? ErroSincronizacao { get; set; } //REVISÃO: aviso de falha de conexão com o Moodle/NSG, exibido em vermelho no lugar do resumo
+        public string? MensagemSincronizacao { get; set; }
+        public string? ErroSincronizacao { get; set; }
         public ICollection<CursoItem> Cursos { get; set; } = new List<CursoItem>();
     }
 
@@ -12,8 +13,6 @@
         public string Nome { get; set; } = string.Empty;
         public string Coordenador { get; set; } = string.Empty;
 
-        //REVISÃO: era um campo (sem { get; set; }). Funcionava no Razor, mas model binding, validação e serialização
-        //JSON ignoram campos. Virou propriedade, como o resto da classe.
         public ICollection<ModulosItem> Modulos { get; set; } = new List<ModulosItem>();
     }
 

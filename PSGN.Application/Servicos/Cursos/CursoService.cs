@@ -27,9 +27,7 @@ namespace PSGN.Application.Servicos.Cursos
         {
             var cursosExternos = await _externoCurso.ObterCursosPeloIdNumberAsync(idNumber, profundidade);
 
-            //REVISÃO: antes comparava pelo Nome. Se alguém renomeasse a categoria no Moodle, o curso seria cadastrado de novo
-            //(duplicado). O id da categoria no Moodle não muda, então é ele que identifica o curso. E, em vez de trazer a
-            //tabela Cursos inteira pra memória (ToList), trago só os IdMoodle, que é tudo que a comparação precisa.
+            // O curso é identificado pelo IdMoodle da categoria (o nome pode mudar no Moodle)
             var idsMoodleCadastrados = (await _dbContext.Cursos.Select(c => c.IdMoodle).ToListAsync()).ToHashSet();
             var cursosParaAdicionar = cursosExternos //todos os cursos novos que vão ser cadastrados
                 .Where(cursoExterno => !idsMoodleCadastrados.Contains(cursoExterno.Id));
@@ -42,15 +40,11 @@ namespace PSGN.Application.Servicos.Cursos
                 if (cursoNSG is null)
                     continue; //o NSG não conhece esse curso, então não temos coordenador pra ele: pula pro próximo
 
-                //REVISÃO: os dois ramos do if/else antigo (coordenador já existe / não existe) faziam quase a mesma coisa, e
-                //o "Any" seguido do "FirstOrDefault" ia duas vezes no banco. Agora é uma chamada só. O SaveChangesAsync que
-                //existia no meio do loop também saiu: o ObterOuCriarUsuarioAsync enxerga usuários adicionados e ainda não
-                //salvos, então dois cursos com o mesmo coordenador novo não criam o usuário duas vezes.
+                // Coordenador: busca ou cria pela matrícula (enxerga também os ainda não salvos)
                 var coordenadorNSG = cursoNSG.Value.Coordenador;
                 var coordenador = await _dbContext.ObterOuCriarUsuarioAsync(coordenadorNSG.Matricula, coordenadorNSG.Nome);
 
-                //REVISÃO: o período letivo agora vem do NSG (antes era o 51 fixo no Curso.cs).
-                //A sigla continua recebendo o nome: nem o Moodle nem o NSG mandam uma sigla de verdade ainda.
+                // Período letivo vem do NSG; a sigla recebe o nome porque nenhuma das fontes manda sigla
                 var novoCurso = new Curso(curso.Nome, curso.Nome, curso.Id, cursoNSG.Value.PerLetivo, coordenador);
                 _dbContext.Cursos.Add(novoCurso);
 
@@ -60,8 +54,7 @@ namespace PSGN.Application.Servicos.Cursos
             return cursosAdicionados;
         }
 
-        //REVISÃO: método novo. A sincronização de módulos e alunos precisa rodar para TODOS os cursos cadastrados, e não só
-        //para os criados agora (esse era o bug dos módulos). Também é usado pela tela inicial para listar os cursos.
+        // Todos os cursos com os módulos. Usado pela sincronização, pela tela de Cursos e pelos filtros da página de Alunos
         public async Task<List<Curso>> ListarCursosAsync()
         {
             return await _dbContext.Cursos
@@ -71,14 +64,14 @@ namespace PSGN.Application.Servicos.Cursos
                 .ToListAsync();
         }
 
-        // REVISÃO: método novo, usado pelo Dashboard (filtros de curso e gráfico de pizza "alunos por curso")
-        public async Task<List<Curso>> ListarCursosComAlunosAsync() // devolve a entidade Curso, seguindo a arquitetura dos outros métodos
+        // Cursos com alunos: filtros e gráfico de pizza do Dashboard
+        public async Task<List<Curso>> ListarCursosComAlunosAsync()
         {
-            return await _dbContext.Cursos // começa na tabela de cursos
-                .Include(c => c.Alunos) // traz os alunos de cada curso, para a tela contar com curso.Alunos.Count
-                .OrderBy(c => c.Nome) // ordena pelo nome, que é a ordem dos selects e da legenda da pizza
-                .AsNoTracking() // só leitura: o EF não precisa acompanhar mudanças
-                .ToListAsync(); // executa a consulta e devolve a lista
-        } // fim do ListarCursosComAlunosAsync
+            return await _dbContext.Cursos
+                .Include(c => c.Alunos)
+                .OrderBy(c => c.Nome)
+                .AsNoTracking()
+                .ToListAsync();
+        }
     }
 }

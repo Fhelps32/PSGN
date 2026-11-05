@@ -34,34 +34,32 @@ namespace PSGN.Domain
             DataInscricao = dataInscricao;
         }
 
-        // REVISÃO: o ObterSituacao (Aprovado/Reprovado/Em andamento/Cancelado) foi REMOVIDO: a classificação antiga da situação das inscrições não existe mais no PSGN
-        // REVISÃO (regra de tentativas): ao entrar no módulo o aluno abre uma tentativa; reprovado, o administrador abre uma nova; com uma tentativa
-        // aprovada (nota >= 7) o módulo fica concluído e ele passa para o próximo. ATENÇÃO: tudo abaixo precisa das Tentativas carregadas (Include)
+        // Regras de tentativas da inscrição (usadas pelo TentativaService e pela página de Alunos). Exigem as Tentativas carregadas (Include)
+        public IEnumerable<Tentativa> TentativasEmOrdem => Tentativas
+            .OrderBy(t => t.DataInicioTentativa)
+            .ThenBy(t => t.IdTentativa);
 
-        public IEnumerable<Tentativa> TentativasEmOrdem => Tentativas // histórico na ordem em que as tentativas foram abertas
-            .OrderBy(t => t.DataInicioTentativa) // a mais antiga primeiro
-            .ThenBy(t => t.IdTentativa); // desempate: a criada primeiro
+        public Tentativa? TentativaAberta => Tentativas.FirstOrDefault(t => t.Aberta);
 
-        public Tentativa? TentativaAberta => Tentativas.FirstOrDefault(t => t.Aberta); // a tentativa em curso (no máximo uma por vez)
+        public bool Aprovado => Tentativas.Any(t => t.Situacao == Enum.EnumSituacaoTentativa.Aprovada);
 
-        public bool Aprovado => Tentativas.Any(t => t.Situacao == Enum.EnumSituacaoTentativa.Aprovada); // alguma tentativa foi aprovada: módulo concluído
+        public bool PodeAbrirTentativa => !Aprovado && TentativaAberta is null;
 
-        public bool PodeAbrirTentativa => !Aprovado && TentativaAberta is null; // só abre se o módulo não foi aprovado e não há outra em curso
-
-        // Nota final do módulo: a da tentativa aprovada; sem aprovação, a da tentativa mais recente que tem nota (null se nenhuma tem)
+        // Nota da tentativa aprovada; sem aprovação, a da tentativa mais recente com nota
         public double? ObterNotaFinal() => Tentativas.FirstOrDefault(t => t.Situacao == Enum.EnumSituacaoTentativa.Aprovada)?.Nota
             ?? TentativasEmOrdem.LastOrDefault(t => t.Nota is not null)?.Nota;
 
-        public Tentativa AbrirTentativa(DateTime inicio) // abre uma tentativa com o prazo padrão (40 dias) e devolve a nova
+        // Abre uma nova tentativa com o prazo padrão (lança exceção se já aprovado ou se já houver uma aberta)
+        public Tentativa AbrirTentativa(DateTime inicio)
         {
             if (!PodeAbrirTentativa) throw new InvalidOperationException(Aprovado
-                ? "Este módulo já foi aprovado; não é possível abrir outra tentativa." // módulo concluído
-                : "Já existe uma tentativa aberta neste módulo."); // só uma tentativa em curso por vez
-            var tentativa = new Tentativa(this, inicio, Tentativa.PrazoPadrao); // nova tentativa, ligada a esta inscrição
-            Tentativas.Add(tentativa); // entra na coleção: o EF grava junto com o AlunoModulo
-            return tentativa; // devolve para quem chamou saber qual foi aberta
-        } // fim do AbrirTentativa
+                ? "Este módulo já foi aprovado; não é possível abrir outra tentativa."
+                : "Já existe uma tentativa aberta neste módulo.");
+            var tentativa = new Tentativa(this, inicio, Tentativa.PrazoPadrao);
+            Tentativas.Add(tentativa);
+            return tentativa;
+        }
 
-        public void Concluir(DateTime agora) => DataConclusao = agora; // marca o módulo como concluído (chamado quando uma tentativa é aprovada)
+        public void Concluir(DateTime agora) => DataConclusao = agora;
     }
 }

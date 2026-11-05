@@ -9,8 +9,7 @@ namespace PSGN.Application.Interfaces.ExternoServices
 {
     public interface IExternoCursoNSG
     {
-        //REVISÃO: antes era ObterCoordenadorDoCursoAsync e devolvia só o coordenador, jogando fora o perLetivo que o NSG
-        //também manda. Agora devolve o curso do NSG inteiro (coordenador + período letivo). null = o NSG não conhece o curso.
+        // Curso do NSG (coordenador e período letivo); null se o NSG não o conhece. Usado pelo CursoService
         public Task<CursoSaidaJsonNSGDto?> ObterCursoAsync(string nomeCurso);
     }
 }

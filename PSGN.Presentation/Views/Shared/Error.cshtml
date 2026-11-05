@@ -1,21 +1,20 @@
 ﻿@model ErrorViewModel
-@* REVISÃO: página de erro no padrão do redesign e em português (era o texto do template, em inglês, com orientações para desenvolvedor que um usuário não deve ver).
-   Mostra o que aconteceu, o identificador da requisição (para quem for pedir suporte) e o caminho de volta *@
+@* Página de erro: o que aconteceu, o id da requisição (para suporte) e o caminho de volta *@
 @{
-    ViewData["Title"] = "Erro"; // título da aba
+    ViewData["Title"] = "Erro";
 }
 
 <div class="card mx-auto mt-8 max-w-xl">
     <div class="empty">
-        <span class="empty-icon !bg-danger-soft !text-danger" aria-hidden="true"><i class="bi bi-exclamation-octagon"></i></span> @* ícone de erro (decorativo) *@
-        <h1 class="empty-title text-lg">Algo deu errado</h1> @* o que aconteceu *@
-        <p class="empty-desc">Não foi possível concluir a solicitação. Tente novamente; se o problema continuar, informe o identificador abaixo a quem cuida do sistema.</p> @* o que fazer *@
+        <span class="empty-icon !bg-danger-soft !text-danger" aria-hidden="true"><i class="bi bi-exclamation-octagon"></i></span>
+        <h1 class="empty-title text-lg">Algo deu errado</h1>
+        <p class="empty-desc">Não foi possível concluir a solicitação. Tente novamente; se o problema continuar, informe o identificador abaixo a quem cuida do sistema.</p>
 
-        @if (Model.ShowRequestId) @* o identificador só aparece quando existe *@
+        @if (Model.ShowRequestId)
         {
             <p class="mt-4 text-xs text-ink-soft">Identificador da requisição: <code class="rounded bg-ink/5 px-1.5 py-0.5 font-mono text-ink">@Model.RequestId</code></p>
         }
 
-        <a asp-controller="Dashboard" asp-action="Index" class="btn btn-primary mt-6">Voltar ao Dashboard</a> @* caminho de volta *@
+        <a asp-controller="Dashboard" asp-action="Index" class="btn btn-primary mt-6">Voltar ao Dashboard</a>
     </div>
 </div>

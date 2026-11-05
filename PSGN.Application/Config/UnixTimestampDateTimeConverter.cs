@@ -15,8 +15,7 @@ namespace PSGN.Application.Config
             Type typeToConvert, 
             JsonSerializerOptions options)
         {
-            //REVISÃO: este conversor trata DateTime? (anulável), então o Moodle pode mandar "timefinish": null para tentativa
-            //em andamento. O GetInt64() num token null lança InvalidOperationException; agora o null é devolvido como null.
+            // Prova em andamento: o Moodle manda null, que vira null (GetInt64 estouraria)
             if (reader.TokenType == JsonTokenType.Null)
                 return null;
 

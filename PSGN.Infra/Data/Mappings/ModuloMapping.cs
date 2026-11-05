@@ -19,7 +19,7 @@ namespace PSGN.Infra.Data.Mappings
                    .HasForeignKey(m => m.IdCurso)
                    .OnDelete(DeleteBehavior.Cascade);
 
-            //REVISÃO: cada "course" do Moodle vira um único módulo
+            // Cada "course" do Moodle vira um único módulo
             builder.HasIndex(m => m.IdMoodle).IsUnique();
         }
     }

@@ -1,18 +1,18 @@
 @model AlertaViewModel
-@* REVISÃO: partial nova. Aviso fixo na página, com ícone, texto e botão de fechar (tratado pelo ui.js). Erro usa role="alert" (anunciado na hora); os demais, role="status" *@
+@* Aviso fixo com ícone, texto e botão de fechar (ui.js). Modelo: AlertaViewModel. Usado nas telas de Cursos e Alunos *@
 @{
     var icone = Model.Tipo switch // ícone de cada tipo
     {
-        "danger" => "bi-exclamation-octagon", // erro
-        "warning" => "bi-exclamation-triangle", // atenção
-        "info" => "bi-info-circle", // REVISÃO: informação (nova variante, em sky)
+        "danger" => "bi-exclamation-octagon",
+        "warning" => "bi-exclamation-triangle",
+        "info" => "bi-info-circle",
         _ => "bi-check-circle" // sucesso
-    }; // fim do switch
+    };
 }
 <div role="@(Model.Tipo == "danger" ? "alert" : "status")" class="alert alert-@Model.Tipo">
-    <i class="bi @icone mt-0.5 shrink-0" aria-hidden="true"></i> @* ícone do tipo (decorativo) *@
-    <p class="min-w-0 break-words">@Model.Mensagem</p> @* texto; quebra em palavras muito longas (ex.: detalhe técnico de erro) *@
-    @if (Model.Fechavel) @* botão de fechar é opcional *@
+    <i class="bi @icone mt-0.5 shrink-0" aria-hidden="true"></i>
+    <p class="min-w-0 break-words">@Model.Mensagem</p>
+    @if (Model.Fechavel)
     {
         <button type="button" class="alert-close" data-dismiss="alert" aria-label="Fechar aviso"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
     }

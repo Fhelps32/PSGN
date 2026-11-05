@@ -15,52 +15,40 @@ namespace PSGN.Application.Servicos.Usuarios
         private readonly IExternoUsuario _externoUsuario;
         private readonly IPSGNDbContext _dbContext;
 
-        //REVISÃO: removido o IExternoCurso (_extrernoCurso), que era injetado mas nunca usado
         public UsuarioService(IExternoUsuario externoUsuario, IPSGNDbContext dbContext)
         {
             _externoUsuario = externoUsuario;
             _dbContext = dbContext;
         }
 
-        //REVISÃO: antes era CriarUsuarioAlunosPorIdCurso(int idCursoMoodle). Recebendo o Curso já carregado, não precisa
-        //buscá-lo de novo no banco. "Sincronizar" porque agora pode rodar várias vezes sem duplicar nada.
+        // Cria usuários, alunos e inscrições a partir dos alunos de cada módulo do curso no Moodle. Pode rodar várias vezes sem duplicar. Usado pelo SincronizacaoService
         public async Task<List<AlunoModulo>> SincronizarAlunosDoCursoAsync(Curso curso)
         {
-            //REVISÃO: antes tinha "ToList() ?? throw". O ToList() nunca devolve null (no máximo uma lista vazia), então
-            //aquele throw nunca acontecia. Curso sem módulo simplesmente não entra no foreach.
             var modulos = await _dbContext.Modulos.Where(m => m.IdCurso == curso.IdCurso).ToListAsync();
 
             var alunosModulosCriados = new List<AlunoModulo>();
 
             foreach (var modulo in modulos)
             {
-                //REVISÃO: BUG. Antes passava o idMoodle do CURSO, que no Moodle é uma CATEGORIA (ex.: 62). Só que o
-                //core_enrol_get_enrolled_users espera o id de um "course" do Moodle, que no PSGN é o MÓDULO (ex.: 721).
-                //Com o id da categoria o Moodle respondia [] e nenhum aluno era criado. (O "?? throw" que existia aqui
-                //também nunca rodava: a implementação nunca devolve null.)
+                // O Moodle espera o id do MÓDULO ("course" do Moodle), não o da categoria do curso
                 var alunosMoodle = await _externoUsuario.ObterAlunosDoModuloAsync(modulo.IdMoodle);
 
                 foreach (var alunoMoodle in alunosMoodle)
                 {
-                    //REVISÃO: BUG. Antes, se o usuário JÁ existisse no banco, o código não fazia nada, nem criava o vínculo
-                    //com este módulo. Um aluno inscrito em 9 módulos só ganharia o primeiro. E se NÃO existisse, era criado
-                    //de novo a cada módulo (o Any() não enxerga o que foi adicionado e ainda não salvo), duplicando usuário
-                    //e aluno. Agora são 3 passos "busca ou cria", um para cada nível: Usuario -> Aluno -> AlunoModulo.
+                    // Busca ou cria em três níveis: Usuario -> Aluno -> AlunoModulo
                     var usuario = await _dbContext.ObterOuCriarUsuarioAsync(alunoMoodle.Matricula, alunoMoodle.Nome);
 
-                    //REVISÃO: 1 Aluno por (usuário, curso). Antes era criado um Aluno novo para cada módulo.
+                    // Um Aluno por (usuário, curso)
                     var aluno = await _dbContext.Alunos
                         .FirstOrDefaultAsync(a => a.IdUsuario == usuario.IdUsuario && a.IdCurso == curso.IdCurso);
                     if (aluno is null)
                     {
-                        //REVISÃO: egresso = quem já concluiu o curso. Quem está inscrito num módulo agora não é egresso,
-                        //então começa como false (antes era true fixo).
+                        // Inscrito num módulo ainda não é egresso
                         aluno = new Aluno(usuario, curso, egresso: false);
                         _dbContext.Alunos.Add(aluno);
                     }
 
-                    //REVISÃO: 1 AlunoModulo por (aluno, módulo), para não duplicar quando a sincronização roda de novo.
-                    //Se o aluno acabou de ser criado (IdAluno == 0), com certeza ainda não tem vínculo, nem precisa consultar.
+                    // Uma inscrição por (aluno, módulo); aluno recém-criado (IdAluno 0) com certeza ainda não tem
                     var jaInscrito = aluno.IdAluno != 0 && await _dbContext.AlunosModulos
                         .AnyAsync(am => am.IdAluno == aluno.IdAluno && am.IdModulo == modulo.IdModulo);
                     if (!jaInscrito)
@@ -72,8 +60,7 @@ namespace PSGN.Application.Servicos.Usuarios
                     }
                 }
 
-                //REVISÃO: salva ao fim de CADA módulo (antes era uma vez só, no final). Assim, quando o mesmo aluno aparecer
-                //no próximo módulo, as consultas acima já o encontram no banco com IdUsuario/IdAluno preenchidos.
+                // Salva a cada módulo para o próximo módulo já encontrar o aluno no banco
                 await _dbContext.SaveChangesAsync();
             }
 

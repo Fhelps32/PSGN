@@ -1,10 +1,8 @@
-@* REVISÃO: barra superior do redesign, só abaixo de 1024px (a classe .topbar tem lg:hidden). Existe porque, no celular, a sidebar começa fechada e precisa de um botão
-   fora dela para ser aberta. Agora também mostra o título da página atual, para o usuário saber onde está sem abrir o menu *@
+@* Barra superior abaixo de 1024px: botão que abre a sidebar e o título da página *@
 <header id="topbar" class="topbar">
-    @* O JavaScript (sidebar.js) liga este botão à sidebar e mantém o aria-expanded atualizado *@
     <button id="openSidebar" type="button" class="btn btn-ghost btn-icon -ml-2" aria-controls="sidebar" aria-expanded="false" aria-label="Abrir menu">
-        <i class="bi bi-list text-xl" aria-hidden="true"></i> @* ícone de "hambúrguer" (decorativo) *@
+        <i class="bi bi-list text-xl" aria-hidden="true"></i>
     </button>
-    <span class="sidebar-logo" aria-hidden="true"><i class="bi bi-mortarboard-fill"></i></span> @* logo (decorativo) *@
-    <span class="topbar-title">@ViewData["Title"]</span> @* título da página atual, cortado com "…" se for longo (REVISÃO: classe própria, branca sobre o indigo) *@
+    <span class="sidebar-logo" aria-hidden="true"><i class="bi bi-mortarboard-fill"></i></span>
+    <span class="topbar-title">@ViewData["Title"]</span>
 </header>

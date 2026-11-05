@@ -18,16 +18,13 @@ namespace PSGN.Infra.Integracoes.NSG
         {
             var response = await _httpClient.GetAsync($"api/curso/infocursonome/{Uri.EscapeDataString(nomeCurso)}");
 
-            //REVISÃO: antes QUALQUER erro virava null ("if (!response.IsSuccessStatusCode) return null"). Um 500 do NSG
-            //(erro de banco, por exemplo) fazia todos os cursos serem pulados em silêncio, sem erro nenhum na tela. Só o 404
-            //significa "o NSG não conhece esse curso"; qualquer outro erro agora aparece como exceção.
+            // Só o 404 significa "o NSG não conhece o curso"; os outros erros viram exceção
             if (response.StatusCode == HttpStatusCode.NotFound)
                 return null;
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync();
 
-            //REVISÃO: devolve o DTO inteiro do NSG (antes copiava só o coordenador para um DTO novo e perdia o perLetivo)
             return JsonSerializer.Deserialize<CursoSaidaJsonNSGDto>(json);
         }
     }

@@ -1,56 +1,49 @@
-@* REVISÃO: sidebar do redesign. Itens agrupados por tema, item ativo com barra de acento, tooltip nos ícones quando recolhida e botão de recolher no cabeçalho.
-   Abaixo de 1024px vira painel sobreposto (aberto pelo botão da _Topbar); a partir de 1024px fica fixa. Largura e deslocamento: Styles/layout.css; comportamento: wwwroot/js/sidebar.js *@
+@* Menu lateral: fixo e recolhível a partir de 1024px, painel sobreposto abaixo disso. Visual: layout.css; comportamento: sidebar.js *@
 @{
-    var controller = ViewContext.RouteData.Values["controller"]?.ToString(); // controller da página atual, para destacar o item ativo
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
 
     var grupos = new[] // grupos de navegação; cada grupo tem um título e seus itens (só as telas que existem hoje)
     {
-        new { Titulo = "Visão geral", Itens = new[] { new { Ctrl = "Dashboard", Icone = "bi-grid-1x2", Rotulo = "Dashboard" } } }, // grupo de resumo
-        new { Titulo = "Acadêmico", Itens = new[] { new { Ctrl = "Home", Icone = "bi-book", Rotulo = "Cursos" }, new { Ctrl = "Alunos", Icone = "bi-people", Rotulo = "Alunos" } } } // grupo dos cadastros: Cursos (controller Home) e Alunos
-    }; // fim dos grupos
+        new { Titulo = "Visão geral", Itens = new[] { new { Ctrl = "Dashboard", Icone = "bi-grid-1x2", Rotulo = "Dashboard" } } },
+        new { Titulo = "Acadêmico", Itens = new[] { new { Ctrl = "Home", Icone = "bi-book", Rotulo = "Cursos" }, new { Ctrl = "Alunos", Icone = "bi-people", Rotulo = "Alunos" } } }
+    };
 }
 
-@* aside: no celular é um painel fora da tela (data-open="true" o traz para dentro); no desktop é fixo. Visual no layout.css *@
 <aside id="sidebar" aria-label="Menu lateral" data-open="false">
 
-    @* Cabeçalho: logo + botão de fechar (só no celular) *@
     <div class="sidebar-header">
-        <div class="sidebar-brand"> @* logo: quadrado azul com o ícone + nome; recolhida, só o quadrado *@
-            <span class="sidebar-logo" aria-hidden="true"><i class="bi bi-mortarboard-fill"></i></span> @* ícone de capelo (decorativo) *@
-            <span class="sidebar-name sidebar-label">PSGN</span> @* nome do sistema *@
+        <div class="sidebar-brand">
+            <span class="sidebar-logo" aria-hidden="true"><i class="bi bi-mortarboard-fill"></i></span>
+            <span class="sidebar-name sidebar-label">PSGN</span>
         </div>
 
-        @* REVISÃO: desktop: recolhe/expande. Voltou para o cabeçalho, à direita do logo (estava no rodapé). Recolhida, o cabeçalho mostra só este botão (layout.css).
-           O sidebar.js mantém aria-expanded, aria-label e o tooltip com a ação atual ("Recolher menu"/"Expandir menu"); o tooltip aparece sempre, porque o botão só tem ícone *@
+        @* Recolher/expandir (desktop). O sidebar.js mantém aria-expanded, aria-label e o tooltip *@
         <button id="toggleSidebar" type="button" class="btn btn-ghost btn-icon hidden lg:inline-flex" aria-controls="sidebar" aria-expanded="true" aria-label="Recolher menu"
                 data-tooltip="Recolher menu" data-tooltip-placement="right">
-            <i class="bi bi-list text-xl" aria-hidden="true"></i> @* ícone de "hambúrguer", o mesmo do PSG *@
+            <i class="bi bi-list text-xl" aria-hidden="true"></i>
         </button>
 
-        @* Celular/tablet: fecha o painel *@
         <button id="closeSidebar" type="button" class="btn btn-ghost btn-icon lg:hidden" aria-controls="sidebar" aria-label="Fechar menu">
-            <i class="bi bi-x-lg" aria-hidden="true"></i> @* ícone de X *@
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
         </button>
     </div>
 
-    @* Navegação: um bloco por grupo *@
     <nav class="sidebar-nav" aria-label="Navegação principal">
-        @foreach (var grupo in grupos) // um bloco por grupo
+        @foreach (var grupo in grupos)
         {
             <div class="nav-group">
-                <p class="nav-group-label">@grupo.Titulo</p> @* título do grupo; recolhida, vira uma linha divisória (layout.css) *@
-                <ul class="space-y-0.5"> @* lista de itens do grupo *@
-                    @foreach (var item in grupo.Itens) // um link por item
+                <p class="nav-group-label">@grupo.Titulo</p>
+                <ul class="space-y-0.5">
+                    @foreach (var item in grupo.Itens)
                     {
-                        var ativo = controller == item.Ctrl; // é a página atual?
+                        var ativo = controller == item.Ctrl;
                         <li>
-                            @* aria-label: com a sidebar recolhida o texto some, então o nome do link precisa estar no atributo; aria-current avisa o leitor de tela qual é a página atual;
-                               data-tooltip: o ui.js mostra o nome ao lado do ícone, mas só com a sidebar recolhida *@
+                            @* aria-label para a sidebar recolhida (só ícone); data-tooltip só aparece recolhida (ui.js) *@
                             <a asp-controller="@item.Ctrl" asp-action="Index" class="nav-link"
                                aria-label="@item.Rotulo" aria-current="@(ativo ? "page" : null)"
                                data-tooltip="@item.Rotulo" data-tooltip-placement="right" data-tooltip-if="sidebar-collapsed">
-                                <i class="bi @item.Icone" aria-hidden="true"></i> @* ícone do item (decorativo) *@
-                                <span class="sidebar-label">@item.Rotulo</span> @* texto; some quando a sidebar recolhe *@
+                                <i class="bi @item.Icone" aria-hidden="true"></i>
+                                <span class="sidebar-label">@item.Rotulo</span>
                             </a>
                         </li>
                     }
@@ -59,8 +52,7 @@
         }
     </nav>
 
-    @* REVISÃO: o rodapé com o botão de recolher foi removido; o botão agora fica no cabeçalho *@
 </aside>
 
-@* Overlay: fundo escuro atrás do painel aberto; clicar nele fecha. Só existe abaixo de 1024px (lg:hidden) e começa escondido (atributo hidden) *@
+@* Fundo atrás do painel aberto no celular; clicar fecha (sidebar.js) *@
 <div id="sidebarOverlay" hidden class="fixed inset-0 z-30 lg:hidden"></div>

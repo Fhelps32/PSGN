@@ -1,13 +1,12 @@
-@* REVISÃO: bloco de título do cabeçalho de página, agora com o grupo da sidebar acima do título (ViewData["Section"]). Lê ViewData["Title"] (que cada view já define para a aba) e
-   ViewData["Subtitle"] (opcional). Uso: <div class="page-header"> <partial name="_PageHeader" /> <div class="page-actions">…ações…</div> </div> *@
+@* Título da página: grupo (ViewData["Section"]), título (ViewData["Title"]) e subtítulo opcional. Usado no topo de todas as páginas *@
 <div class="min-w-0">
-    @if (ViewData["Section"] is string secao) @* o grupo é opcional *@
+    @if (ViewData["Section"] is string secao)
     {
-        <p class="page-eyebrow">@secao</p> @* ex.: "Acadêmico" *@
+        <p class="page-eyebrow">@secao</p>
     }
-    <h1 class="page-title">@ViewData["Title"]</h1> @* título da página *@
-    @if (ViewData["Subtitle"] is string subtitulo) @* o subtítulo é opcional *@
+    <h1 class="page-title">@ViewData["Title"]</h1>
+    @if (ViewData["Subtitle"] is string subtitulo)
     {
-        <p class="page-subtitle">@subtitulo</p> @* texto de apoio de uma linha *@
+        <p class="page-subtitle">@subtitulo</p>
     }
 </div>

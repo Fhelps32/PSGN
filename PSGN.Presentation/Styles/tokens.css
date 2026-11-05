@@ -1,160 +1,157 @@
 /* ============================================================
-   REVISÃO: tokens de design do PSGN, agora em TRÊS CAMADAS. TODA decisão visual (cor, fonte, raio, sombra, medidas) nasce aqui e o resto do CSS só referencia.
-     1) PALETA   (--palette-*): as cinco cores da identidade e as variações derivadas delas. É a única camada com valores de cor.
-     2) PAPÉIS   (--color-*):   o que cada cor FAZ no sistema (marca, superfície, texto, borda, sidebar, feedback...). É o que os componentes usam.
+   Tokens de design do PSGN, em três camadas. Toda cor, fonte, raio e medida nasce aqui; o resto do CSS só referencia.
+     1) PALETA (--palette-*): as cinco cores da identidade (★) e suas variações. Única camada com valores de cor.
+     2) PAPÉIS (--color-*): o que cada cor faz (marca, superfície, texto, borda, sidebar, feedback). É o que os componentes usam.
      3) MEDIDAS: fonte, raios, sombra e layout.
-   Para mudar a identidade, troque os valores da camada 1 (ou aponte um papel para outro passo) e rode "npm run css:build".
-   As cores são tripletos RGB ("41 51 92") para o Tailwind conseguir aplicar transparência: bg-brand/10 vira rgb(var(--color-brand-primary) / 0.1)
-   Os contrastes de cada par de cores foram calculados (WCAG 2.2 AA); os valores aparecem nos comentários.
+   Cores em tripleto RGB para o Tailwind aplicar transparência (bg-brand/10). Depois de mudar, rode "npm run css:build".
    ============================================================ */
 @layer base {
 
-    /* ---------- Fonte: Inter variável, hospedada no projeto (wwwroot/fonts/inter), igual em qualquer sistema operacional ---------- */
+    /* Fonte Inter variável, servida pelo projeto (wwwroot/fonts/inter) */
     @font-face {
-        font-family: "Inter"; /* nome usado em --font-sans */
-        font-style: normal; /* só o estilo normal (não usamos itálico) */
-        font-weight: 100 900; /* fonte variável: um arquivo cobre todos os pesos */
-        font-display: swap; /* mostra a fonte do sistema até a Inter carregar, sem página em branco */
-        src: url("../fonts/inter/inter-latin-wght-normal.woff2") format("woff2"); /* caminho relativo a /css/tailwind.css */
-        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; /* subconjunto latino: cobre todos os acentos do português */
+        font-family: "Inter";
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url("../fonts/inter/inter-latin-wght-normal.woff2") format("woff2");
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
     }
 
     :root {
-        /* ================= CAMADA 1: PALETA =================
-           ★ = cor original da identidade. As demais são variações do MESMO matiz (mais claras, mais escuras ou de apoio). */
+        /* ================= CAMADA 1: PALETA ================= */
 
-        /* Twilight Indigo: a identidade */
-        --palette-indigo-50: 240 243 252; /* #F0F3FC fundo suave */
+        /* Twilight Indigo: identidade */
+        --palette-indigo-50: 240 243 252; /* #F0F3FC */
         --palette-indigo-100: 225 230 245; /* #E1E6F5 */
-        --palette-indigo-500: 63 79 148; /* #3F4F94 só para gráficos (a cor ★ é escura demais para uma série) */
+        --palette-indigo-500: 63 79 148; /* #3F4F94 */
         --palette-indigo-700: 41 51 92; /* #29335C ★ */
-        --palette-indigo-800: 26 34 74; /* #1A224A hover da ação primária */
-        --palette-indigo-900: 15 22 60; /* #0F163C ação pressionada, sombra e véu de modal */
+        --palette-indigo-800: 26 34 74; /* #1A224A */
+        --palette-indigo-900: 15 22 60; /* #0F163C */
 
-        /* Sky Surge: o destaque principal */
+        /* Sky Surge: destaque principal (o ★ só serve de texto sobre fundo escuro) */
         --palette-sky-50: 231 249 254; /* #E7F9FE */
         --palette-sky-100: 203 239 250; /* #CBEFFA */
-        --palette-sky-400: 65 187 217; /* #41BBD9 ★ só sobre fundo ESCURO (sobre branco dá 2,25:1) */
-        --palette-sky-600: 0 146 175; /* #0092AF ícones sobre fundo claro (3,66:1 no branco) */
-        --palette-sky-700: 0 114 143; /* #00728F texto, link e foco sobre fundo claro (5,52:1 no branco, 4,54:1 no sky-100) */
+        --palette-sky-400: 65 187 217; /* #41BBD9 ★ */
+        --palette-sky-600: 0 146 175; /* #0092AF */
+        --palette-sky-700: 0 114 143; /* #00728F */
 
-        /* Vibrant Coral: o destaque secundário. NUNCA é cor de texto nem de ícone (3,08:1 no branco): é superfície e marca */
+        /* Vibrant Coral: destaque secundário; nunca texto, ícone ou erro */
         --palette-coral-50: 255 241 239; /* #FFF1EF */
         --palette-coral-100: 255 223 217; /* #FFDFD9 */
         --palette-coral-400: 237 106 90; /* #ED6A5A ★ */
-        --palette-coral-500: 227 97 82; /* #E36152 pontos e séries sobre claro (3,44:1 no branco) */
+        --palette-coral-500: 227 97 82; /* #E36152 */
 
-        /* Banana Cream: atenção pontual. Sobre branco só dá 1,25:1, então só aparece como fundo suave ou sobre o indigo (9,72:1) */
-        --palette-banana-50: 252 248 221; /* #FCF8DD fundo do aviso */
+        /* Banana Cream: atenção; só como fundo suave ou sobre o indigo */
+        --palette-banana-50: 252 248 221; /* #FCF8DD */
         --palette-banana-100: 250 242 188; /* #FAF2BC */
         --palette-banana-300: 252 231 98; /* #FCE762 ★ */
-        --palette-banana-600: 160 138 0; /* #A08A00 ícone e borda do aviso (3,20:1 no banana-50) */
-        --palette-banana-900: 100 78 0; /* #644E00 texto do aviso (7,45:1 no banana-50) */
+        --palette-banana-600: 160 138 0; /* #A08A00 */
+        --palette-banana-900: 100 78 0; /* #644E00 */
 
-        /* Pale Sky: apoio (bordas, divisores, fundos suaves, texto da sidebar) */
+        /* Pale Sky: fundos, bordas e texto da sidebar */
         --palette-pale-50: 237 247 251; /* #EDF7FB */
-        --palette-pale-75: 230 241 246; /* #E6F1F6 REVISÃO: fundo da página, Pale Sky claro (o fundo antigo #F3F8FA era quase branco e escondia a paleta) */
-        --palette-pale-100: 222 238 245; /* #DEEEF5 etiqueta neutra */
-        --palette-pale-200: 209 227 235; /* #D1E3EB divisor decorativo */
-        --palette-pale-300: 173 202 214; /* #ADCAD6 ★ ícones da sidebar (7,08:1 no indigo) */
-        --palette-pale-600: 116 143 154; /* #748F9A borda de componente (3,42:1 no branco, 3,20:1 na página) */
+        --palette-pale-75: 230 241 246; /* #E6F1F6 */
+        --palette-pale-100: 222 238 245; /* #DEEEF5 */
+        --palette-pale-200: 209 227 235; /* #D1E3EB */
+        --palette-pale-300: 173 202 214; /* #ADCAD6 ★ */
+        --palette-pale-600: 116 143 154; /* #748F9A */
 
-        /* Neutros: tingidos com o matiz do indigo e do pale sky, para não competirem com a paleta */
-        --palette-neutral-page: 243 248 250; /* #F3F8FA fundo da página */
-        --palette-neutral-subtle: 233 242 245; /* #E9F2F5 superfície de apoio */
-        --palette-neutral-row-hover: 246 247 248; /* #F6F7F8 linha de tabela em hover */
-        --palette-neutral-900: 24 30 53; /* #181E35 texto principal (16,46:1 no branco) */
-        --palette-neutral-700: 70 78 108; /* #464E6C texto secundário (8,18:1) */
-        --palette-neutral-600: 89 98 128; /* #596280 texto auxiliar e placeholder (6,03:1) */
+        /* Neutros tingidos de indigo (textos) */
+        --palette-neutral-page: 243 248 250; /* #F3F8FA */
+        --palette-neutral-subtle: 233 242 245; /* #E9F2F5 */
+        --palette-neutral-row-hover: 246 247 248; /* #F6F7F8 */
+        --palette-neutral-900: 24 30 53; /* #181E35 */
+        --palette-neutral-700: 70 78 108; /* #464E6C */
+        --palette-neutral-600: 89 98 128; /* #596280 */
 
-        /* ================= CAMADA 2: PAPÉIS ================= */
+        /* ================= CAMADA 2: PAPÉIS =================
+           Contrastes conferidos para WCAG 2.2 AA (texto 4,5:1; componentes e ícones 3:1) */
 
-        /* Marca */
-        --color-brand-primary: var(--palette-indigo-700); /* identidade e ação principal: branco sobre ele dá 12,19:1 */
-        --color-brand-primary-hover: var(--palette-indigo-800); /* hover do botão primário (15,31:1) */
-        --color-brand-primary-pressed: var(--palette-indigo-900); /* botão pressionado (17,50:1) */
-        --color-brand-primary-soft: var(--palette-indigo-50); /* hover do botão secundário, item selecionado */
-        --color-brand-primary-tint: var(--palette-indigo-100); /* fundo de apoio da marca */
+        /* Marca: ação principal e seus estados */
+        --color-brand-primary: var(--palette-indigo-700);
+        --color-brand-primary-hover: var(--palette-indigo-800);
+        --color-brand-primary-pressed: var(--palette-indigo-900);
+        --color-brand-primary-soft: var(--palette-indigo-50);
+        --color-brand-primary-tint: var(--palette-indigo-100);
 
-        /* Destaque principal (Sky) */
-        --color-accent: var(--palette-sky-400); /* indicador, ícone ativo e foco SOBRE FUNDO ESCURO (sidebar) */
-        --color-accent-strong: var(--palette-sky-700); /* links, anel de foco e aviso informativo SOBRE FUNDO CLARO */
-        --color-accent-icon: var(--palette-sky-600); /* ícones e elementos gráficos sobre fundo claro */
-        --color-accent-soft: var(--palette-sky-50); /* fundo do aviso informativo */
-        --color-accent-tint: var(--palette-sky-100); /* fundo do tile de indicador */
+        /* Destaque principal (Sky): accent sobre fundo escuro; strong para texto, link e foco sobre fundo claro */
+        --color-accent: var(--palette-sky-400);
+        --color-accent-strong: var(--palette-sky-700);
+        --color-accent-icon: var(--palette-sky-600);
+        --color-accent-soft: var(--palette-sky-50);
+        --color-accent-tint: var(--palette-sky-100);
 
-        /* Destaque secundário (Coral): só superfície e marca, nunca texto, nunca erro */
-        --color-highlight: var(--palette-coral-400); /* série de gráfico e ponto de destaque */
-        --color-highlight-graphic: var(--palette-coral-500); /* mesma cor, com contraste mínimo para elementos gráficos sobre claro */
-        --color-highlight-soft: var(--palette-coral-50); /* fundo suave */
-        --color-highlight-tint: var(--palette-coral-100); /* tile de indicador, badge de destaque, estado vazio */
+        /* Destaque secundário (Coral) */
+        --color-highlight: var(--palette-coral-400);
+        --color-highlight-graphic: var(--palette-coral-500);
+        --color-highlight-soft: var(--palette-coral-50);
+        --color-highlight-tint: var(--palette-coral-100);
 
         /* Atenção (Banana) */
-        --color-notice: var(--palette-banana-300); /* sobre fundos escuros */
-        --color-notice-soft: var(--palette-banana-50); /* fundo do aviso de atenção */
-        --color-notice-tint: var(--palette-banana-100); /* variação do fundo */
-        --color-notice-text: var(--palette-banana-900); /* texto do aviso (7,45:1) */
-        --color-notice-icon: var(--palette-banana-600); /* ícone e borda do aviso */
+        --color-notice: var(--palette-banana-300);
+        --color-notice-soft: var(--palette-banana-50);
+        --color-notice-tint: var(--palette-banana-100);
+        --color-notice-text: var(--palette-banana-900);
+        --color-notice-icon: var(--palette-banana-600);
 
-        /* Superfícies */
-        --color-surface-page: var(--palette-pale-75); /* REVISÃO: fundo da página em Pale Sky claro (antes neutro quase branco): os cards brancos se destacam e a paleta aparece na tela toda */
-        --color-surface-primary: 255 255 255; /* cards, tabelas e campos */
-        --color-surface-secondary: var(--palette-pale-50); /* REVISÃO: áreas de apoio (rodapé de diálogo, curso aberto) em Pale Sky bem claro */
-        --color-surface-hover: var(--palette-sky-50); /* REVISÃO: hover de linha, item de lista e curso agora em Sky Surge claro (antes cinza): o estado interativo carrega a paleta */
-        --color-surface-support: var(--palette-pale-100); /* etiquetas e áreas de apoio (Pale Sky) */
+        /* Superfícies: página, cards, apoio, hover e etiquetas */
+        --color-surface-page: var(--palette-pale-75);
+        --color-surface-primary: 255 255 255;
+        --color-surface-secondary: var(--palette-pale-50);
+        --color-surface-hover: var(--palette-sky-50);
+        --color-surface-support: var(--palette-pale-100);
 
         /* Texto */
-        --color-text-primary: var(--palette-indigo-700); /* REVISÃO: títulos e dados em Twilight Indigo ★ (12,19:1 no branco; antes um quase-preto neutro) */
-        --color-text-secondary: var(--palette-neutral-700); /* corpo e rótulos */
-        --color-text-muted: var(--palette-neutral-600); /* auxiliar e placeholder: o mais claro permitido (5,6:1 no mínimo) */
-        --color-text-on-brand: 255 255 255; /* texto sobre a cor da marca */
+        --color-text-primary: var(--palette-indigo-700);
+        --color-text-secondary: var(--palette-neutral-700);
+        --color-text-muted: var(--palette-neutral-600);
+        --color-text-on-brand: 255 255 255;
 
-        /* Bordas */
-        --color-border-default: var(--palette-pale-300); /* REVISÃO: borda de card e divisores no Pale Sky ★ (#ADCAD6; antes um passo mais claro, quase invisível). Decorativa: não precisa de 3:1 */
-        --color-border-control: var(--palette-pale-600); /* borda de campo e de botão secundário: 3,42:1, mínimo exigido para componentes */
+        /* Bordas: default é decorativa; control tem 3:1 (campos e botões) */
+        --color-border-default: var(--palette-pale-300);
+        --color-border-control: var(--palette-pale-600);
 
         /* Interação */
-        --color-interactive-hover: var(--palette-indigo-700); /* base do hover neutro; usada com transparência (hover:bg-interactive/[0.06]) */
-        --color-focus-ring: var(--palette-sky-700); /* anel de foco sobre fundo claro (5,52:1) */
-        --color-focus-ring-on-dark: var(--palette-sky-400); /* anel de foco sobre a sidebar (5,42:1) */
-        --color-overlay: var(--palette-indigo-900); /* véu atrás de painéis e modais (usado a 50%) */
+        --color-interactive-hover: var(--palette-indigo-700);
+        --color-focus-ring: var(--palette-sky-700);
+        --color-focus-ring-on-dark: var(--palette-sky-400);
+        --color-overlay: var(--palette-indigo-900);
 
-        /* Sidebar (fundo Twilight Indigo) */
-        --color-sidebar-bg: var(--palette-indigo-700); /* fundo */
-        --color-sidebar-hover: 56 65 103; /* #384167 item em hover (indigo + 7% de branco) */
-        --color-sidebar-active: 67 75 112; /* #434B70 item ativo (indigo + 12% de branco) */
-        --color-sidebar-text: 205 226 235; /* #CDE2EB texto dos itens (9,10:1) */
-        --color-sidebar-muted: 183 207 217; /* #B7CFD9 rótulos de grupo (7,51:1) */
-        --color-sidebar-icon: var(--palette-pale-300); /* ícones inativos (7,08:1) */
-        --color-sidebar-line: 255 255 255; /* divisores da sidebar, usados a 10% */
+        /* Sidebar e barra superior (fundo indigo) */
+        --color-sidebar-bg: var(--palette-indigo-700);
+        --color-sidebar-hover: 56 65 103; /* #384167 */
+        --color-sidebar-active: 67 75 112; /* #434B70 */
+        --color-sidebar-text: 205 226 235; /* #CDE2EB */
+        --color-sidebar-muted: 183 207 217; /* #B7CFD9 */
+        --color-sidebar-icon: var(--palette-pale-300);
+        --color-sidebar-line: 255 255 255;
 
-        /* Feedback semântico: definido pelo SIGNIFICADO e independente da identidade */
-        --color-feedback-success: 30 123 75; /* #1E7B4B (5,26:1 no branco) */
-        --color-feedback-success-soft: 235 249 239; /* #EBF9EF (texto 4,84:1) */
-        --color-feedback-danger: 179 38 30; /* #B3261E erro e ação destrutiva (6,54:1 no branco); bem mais escuro que o coral, para nunca se confundirem */
-        --color-feedback-danger-soft: 255 242 239; /* #FFF2EF (texto 5,98:1) */
+        /* Feedback: definido pelo significado, independente da identidade */
+        --color-feedback-success: 30 123 75; /* #1E7B4B */
+        --color-feedback-success-soft: 235 249 239; /* #EBF9EF */
+        --color-feedback-danger: 179 38 30; /* #B3261E */
+        --color-feedback-danger-soft: 255 242 239; /* #FFF2EF */
 
-        /* Gráficos: REVISÃO: 6 séries tiradas SÓ dos matizes da paleta (saíram a lavanda e o teal, que não eram da identidade). Validadas com o
-           validate_palette.js da skill de dataviz: luminosidade e croma na faixa, CVD ΔE mínimo 17,3, visão normal 23,4. São hex porque o Chart.js precisa da cor pronta.
-           Ordem FIXA (a cor segue a série, nunca o ranking). A legenda com valores é obrigatória: sky e banana ficam abaixo de 3:1 no branco.
-           O indigo ★ (#29335C) não vira fatia: é escuro e pouco saturado demais para uma série (reprova no validador), então entra o passo 500 */
-        --color-chart-1: #3F4F94; /* Twilight Indigo (passo 500) */
-        --color-chart-2: #ED6A5A; /* Vibrant Coral ★ */
-        --color-chart-3: #41BBD9; /* Sky Surge ★ */
-        --color-chart-4: #C79F00; /* Banana Cream escurecida (a ★ some no branco) */
-        --color-chart-5: #7B8CE0; /* Twilight Indigo claro */
-        --color-chart-6: #B8503F; /* Vibrant Coral profundo */
+        /* Gráficos (dashboard.js): 6 séries só com matizes da paleta, validadas para daltonismo. Ordem fixa: a cor segue a série.
+           Sky e banana ficam abaixo de 3:1 no branco, por isso a legenda com valores é obrigatória */
+        --color-chart-1: #3F4F94;
+        --color-chart-2: #ED6A5A;
+        --color-chart-3: #41BBD9;
+        --color-chart-4: #C79F00;
+        --color-chart-5: #7B8CE0;
+        --color-chart-6: #B8503F;
 
         /* ================= CAMADA 3: MEDIDAS ================= */
-        --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; /* se a Inter falhar, cai na fonte do sistema */
-        --radius-control: 6px; /* botões, campos, itens de menu */
-        --radius-card: 12px; /* cards, tabelas, painéis, toasts */
-        --shadow-pop: 0 8px 24px rgb(var(--palette-indigo-900) / 0.14), 0 2px 6px rgb(var(--palette-indigo-900) / 0.08); /* única sombra do sistema: só para o que flutua (toast, tooltip, menus) */
-        --sidebar-w: 256px; /* largura da sidebar expandida (recolhida: abaixo) */
-        --content-max: 80rem; /* largura máxima do conteúdo (1280px) */
+        --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --radius-control: 6px;
+        --radius-card: 12px;
+        --shadow-pop: 0 8px 24px rgb(var(--palette-indigo-900) / 0.14), 0 2px 6px rgb(var(--palette-indigo-900) / 0.08);
+        --sidebar-w: 256px;
+        --content-max: 80rem;
     }
 
+    /* Sidebar recolhida (classe posta pelo sidebar.js e pelo script do _Layout) */
     html.sidebar-collapsed {
-        --sidebar-w: 72px; /* largura recolhida (só ícones); só vale a partir de 1024px */
+        --sidebar-w: 72px;
     }
 }

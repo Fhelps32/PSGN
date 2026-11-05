@@ -13,7 +13,7 @@ namespace PSGN.Domain
         public int IdMoodle { get; set; }
         public string Nome { get; set; } = string.Empty;
         public string Sigla { get; set; } = string.Empty;
-        public int PerLetivo { get; set; } //REVISÃO: tirei o 51 fixo; agora o período letivo vem do NSG pelo construtor
+        public int PerLetivo { get; set; }
 
         public DateTime DataCadastro { get; set; } = DateTime.Now;
         public bool Status { get; set; } = true;

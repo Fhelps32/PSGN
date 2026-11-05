@@ -1,250 +1,248 @@
 /* ============================================================
-   REVISÃO: componentes do design system do PSGN. As views usam estas classes (btn, input, card, table...) em vez de repetir dezenas de
-   utilitários do Tailwind; o visual de cada componente fica definido UMA vez, aqui, sempre a partir dos PAPÉIS de cor (Styles/tokens.css).
-   Nenhum valor de cor é escrito neste arquivo (única exceção documentada: a seta do <select>, que fica dentro de uma imagem SVG).
-   Regras da identidade: o indigo é a ação principal; o sky é destaque (sobre fundo claro, sempre a versão "strong"); o coral e a banana
-   NUNCA são cor de texto nem de ícone; o coral nunca representa erro; as cores de feedback são independentes da identidade.
+   Componentes do design system (btn, input, card, table, badge...), usados por todas as views.
+   Só usam os papéis de cor de tokens.css (exceção: a seta do <select>, dentro de um SVG).
+   Indigo = ação principal; sky = destaque e interação; coral e banana nunca são texto; feedback é independente da identidade.
    ============================================================ */
 
 /* ---------- Base: estilos do documento ---------- */
 @layer base {
     html {
-        @apply antialiased; /* suaviza a renderização da fonte */
+        @apply antialiased;
     }
 
     body {
-        @apply bg-page font-sans text-base text-ink; /* fundo, fonte Inter 14px e cor do texto de todo o sistema */
+        @apply bg-page font-sans text-base text-ink;
     }
 
     :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-        outline: 2px solid rgb(var(--color-focus-ring)); /* anel de foco ÚNICO para todo o sistema (5,5:1 no branco); só aparece para quem usa o teclado. Na sidebar a cor muda (layout.css) */
-        outline-offset: 2px; /* afasta o anel do elemento para não encostar na borda */
+        outline: 2px solid rgb(var(--color-focus-ring));
+        outline-offset: 2px;
     }
 
 }
 
 @layer components {
 
-    /* ---------- Link "Ir para o conteúdo": fica fora da tela e desce para o canto quando recebe foco pelo Tab ---------- */
+    /* ---------- Link "Ir para o conteúdo" (aparece ao receber foco pelo Tab) ---------- */
     .skip-link {
-        @apply fixed left-4 top-4 z-50 -translate-y-20 rounded-control bg-brand px-4 py-2 text-sm font-medium text-white shadow-pop; /* escondido acima da tela (continua focável e legível por leitor de tela) */
+        @apply fixed left-4 top-4 z-50 -translate-y-20 rounded-control bg-brand px-4 py-2 text-sm font-medium text-white shadow-pop;
     }
 
     .skip-link:focus {
-        @apply translate-y-0; /* ao focar, aparece no canto superior esquerdo */
+        @apply translate-y-0;
     }
 
-    /* ---------- Botões: .btn + uma variante (+ .btn-sm / .btn-icon). Hierarquia: primário (indigo) > secundário (contorno) > fantasma > destrutivo ---------- */
+    /* ---------- Botões: .btn + variante (primary > secondary > ghost > danger) + .btn-sm / .btn-icon ---------- */
     .btn {
-        @apply inline-flex h-9 select-none items-center justify-center gap-2 whitespace-nowrap rounded-control px-3.5 text-sm font-medium transition-colors; /* base: 36px de altura, texto 13px */
+        @apply inline-flex h-9 select-none items-center justify-center gap-2 whitespace-nowrap rounded-control px-3.5 text-sm font-medium transition-colors;
     }
 
     .btn-primary {
-        @apply bg-brand text-white hover:bg-brand-dark active:bg-brand-pressed; /* ação principal da tela (no máximo UMA por tela): branco sobre indigo = 12,19:1 */
+        @apply bg-brand text-white hover:bg-brand-dark active:bg-brand-pressed;
     }
 
     .btn-secondary {
-        @apply border border-line-control bg-card text-brand hover:border-accent-icon hover:bg-accent-soft active:bg-accent-tint; /* ação secundária: branca, contorno de 3,4:1 e texto indigo. REVISÃO: hover e clique em Sky Surge (fundo sky claro + contorno sky), antes indigo apagado */
+        @apply border border-line-control bg-card text-brand hover:border-accent-icon hover:bg-accent-soft active:bg-accent-tint;
     }
 
     .btn-ghost {
-        @apply text-ink-soft hover:bg-accent-soft hover:text-brand; /* ação terciária e botão de ícone: sem fundo nem borda. REVISÃO: hover em Sky Surge claro com texto indigo (antes cinza) */
+        @apply text-ink-soft hover:bg-accent-soft hover:text-brand;
     }
 
     .btn-danger {
-        @apply bg-danger text-white hover:bg-danger/90; /* ação destrutiva (definida para uso futuro; hoje nenhuma tela tem exclusão): branco sobre vermelho = 6,54:1 */
+        @apply bg-danger text-white hover:bg-danger/90;
     }
 
     .btn-sm {
-        @apply h-8 px-3; /* versão compacta */
+        @apply h-8 px-3;
     }
 
     .btn-icon {
-        @apply w-9 px-0; /* botão quadrado só com ícone (sempre com aria-label) */
+        @apply w-9 px-0;
     }
 
     .btn[aria-busy="true"] {
-        @apply pointer-events-none opacity-80; /* carregando: não aceita novo clique (evita enviar o formulário duas vezes) */
+        @apply pointer-events-none opacity-80;
     }
 
     .btn[aria-busy="true"]::before {
-        content: ""; /* cria o círculo do spinner antes do texto */
-        @apply spinner; /* mesmo spinner do resto do sistema */
+        content: "";
+        @apply spinner;
     }
 
     .spinner {
-        @apply inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent; /* círculo girando, na cor do texto */
+        @apply inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent;
     }
 
     /* ---------- Campos de formulário ---------- */
     .field-label {
-        @apply mb-1.5 block text-xs font-medium text-ink-soft; /* rótulo sempre visível acima do campo */
+        @apply mb-1.5 block text-xs font-medium text-ink-soft;
     }
 
     .field-required::after {
-        content: " *"; /* marca de campo obrigatório */
+        content: " *";
         @apply text-danger;
     }
 
     .input {
-        @apply block h-9 w-full rounded-control border border-line-control bg-card px-3 text-sm text-ink transition-colors; /* campo de 36px, igual aos botões; borda de 3,4:1 (antes era 1,5:1) */
+        @apply block h-9 w-full rounded-control border border-line-control bg-card px-3 text-sm text-ink transition-colors;
     }
 
     .input:hover:not(:focus) {
-        @apply border-brand/70; /* borda mais forte ao passar o mouse, REVISÃO: em indigo (não quando o campo está focado, senão o hover apagava a borda do foco) */
+        @apply border-brand/70;
     }
 
     .input:focus {
-        outline: none; /* o foco do campo é a borda + halo abaixo, não o anel padrão */
-        border-color: rgb(var(--color-focus-ring)); /* borda na cor do foco (sky escuro, 5,5:1) */
-        box-shadow: 0 0 0 3px rgb(var(--color-accent) / 0.35); /* REVISÃO: halo no Sky Surge ★ (antes o sky escuro a 20%, que mal aparecia) */
+        outline: none;
+        border-color: rgb(var(--color-focus-ring));
+        box-shadow: 0 0 0 3px rgb(var(--color-accent) / 0.35);
     }
 
     .input:disabled {
-        @apply cursor-not-allowed bg-page text-ink-muted; /* campo desabilitado fica apagado */
+        @apply cursor-not-allowed bg-page text-ink-muted;
     }
 
     .input[aria-invalid="true"],
     .input.input-validation-error {
-        @apply border-danger; /* estado de erro (também a classe que o ASP.NET coloca na validação) */
+        @apply border-danger;
     }
 
     .input[aria-invalid="true"]:focus,
     .input.input-validation-error:focus {
-        box-shadow: 0 0 0 3px rgb(var(--color-feedback-danger) / 0.2); /* halo vermelho no foco */
+        box-shadow: 0 0 0 3px rgb(var(--color-feedback-danger) / 0.2);
     }
 
     select.input {
-        @apply appearance-none pr-9; /* tira a seta do navegador e reserva espaço para a nossa */
-        /* EXCEÇÃO documentada: a cor da seta (%23596280 = text-muted) fica dentro da imagem SVG, que não aceita variável CSS. Se o token --color-text-muted mudar, troque aqui */
+        @apply appearance-none pr-9;
+        /* A cor da seta (%23596280 = text-muted) fica dentro do SVG; se o token mudar, troque aqui */
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23596280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
-        background-repeat: no-repeat; /* uma seta só */
-        background-position: right 0.625rem center; /* canto direito, centralizada na vertical */
-        background-size: 1rem; /* 16px */
+        background-repeat: no-repeat;
+        background-position: right 0.625rem center;
+        background-size: 1rem;
     }
 
     .input::placeholder,
     input::placeholder,
     textarea::placeholder {
-        @apply text-ink-muted opacity-100; /* REVISÃO: placeholder com contraste de 6:1. Antes ficava em 2,5:1 porque o reset do Tailwind (input::placeholder, mais específico) vencia a regra genérica; aqui, na camada de componentes, ela vence o reset */
+        @apply text-ink-muted opacity-100;
     }
 
     .field-error {
-        @apply mt-1 text-xs text-danger; /* mensagem de erro abaixo do campo (sempre acompanhada de texto, nunca só de cor) */
+        @apply mt-1 text-xs text-danger;
     }
 
     /* ---------- Cards ---------- */
     .card {
-        @apply rounded-card border border-line bg-card; /* superfície padrão: branca, borda decorativa de 1px, SEM sombra */
+        @apply rounded-card border border-line bg-card;
     }
 
     .card-header {
-        @apply flex flex-wrap items-start justify-between gap-3 px-5 pt-5; /* cabeçalho do card: título à esquerda, controles à direita */
+        @apply flex flex-wrap items-start justify-between gap-3 px-5 pt-5;
     }
 
     .card-title {
-        @apply text-lg font-semibold text-ink; /* título do card, 16px */
+        @apply text-lg font-semibold text-ink;
     }
 
     .card-desc {
-        @apply mt-0.5 text-xs text-ink-soft; /* descrição curta abaixo do título */
+        @apply mt-0.5 text-xs text-ink-soft;
     }
 
     .card-body {
-        @apply p-5; /* miolo do card */
+        @apply p-5;
     }
 
-    /* ---------- Indicador (KPI): o card é neutro; só o tile do ícone carrega a cor da categoria ---------- */
+    /* ---------- Indicador (KPI) do Dashboard: card neutro, tile do ícone na cor da categoria ---------- */
     .kpi {
-        @apply card flex items-center justify-between gap-4 px-5 py-4 transition-colors; /* card com número grande */
+        @apply card flex items-center justify-between gap-4 px-5 py-4 transition-colors;
     }
 
     a.kpi:hover {
-        @apply border-accent-icon bg-surface-hover; /* quando o indicador é um link, reage ao mouse (REVISÃO: contorno sky) */
+        @apply border-accent-icon bg-surface-hover;
     }
 
     .kpi-label {
-        @apply text-xs font-medium text-ink-soft; /* o que está sendo contado */
+        @apply text-xs font-medium text-ink-soft;
     }
 
     .kpi-value {
-        @apply mt-1 text-3xl font-semibold tabular-nums text-ink; /* o número, em algarismos de largura fixa */
+        @apply mt-1 text-3xl font-semibold tabular-nums text-ink;
     }
 
     .kpi-icon {
-        @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-accent text-lg text-brand; /* REVISÃO: tile na cor CHEIA da paleta (antes um tom pastel quase branco); o ícone é sempre indigo, nunca na cor do tile */
+        @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-accent text-lg text-brand;
     }
 
     .kpi-icon-accent {
-        @apply bg-accent; /* Sky Surge ★: contagens de pessoas (ícone indigo 5,42:1) */
+        @apply bg-accent;
     }
 
     .kpi-icon-highlight {
-        @apply bg-highlight; /* Vibrant Coral ★: segunda categoria de informação (ícone indigo 3,99:1, acima dos 3:1 exigidos para ícones) */
+        @apply bg-highlight;
     }
 
     /* ---------- Cabeçalho de página ---------- */
     .page-header {
-        @apply mb-6 flex flex-wrap items-end justify-between gap-4; /* título à esquerda, ações à direita; as ações descem em telas estreitas */
+        @apply mb-6 flex flex-wrap items-end justify-between gap-4;
     }
 
     .page-eyebrow {
-        @apply mb-1 text-xs font-semibold text-accent-strong; /* grupo da sidebar a que a página pertence. REVISÃO: em Sky Surge escuro (antes cinza) */
+        @apply mb-1 text-xs font-semibold text-accent-strong;
     }
 
     .page-title {
-        @apply text-2xl font-semibold tracking-tight text-brand; /* título da página, 24px, no indigo da identidade (12,2:1) */
+        @apply text-2xl font-semibold tracking-tight text-brand;
     }
 
     .page-subtitle {
-        @apply mt-1 text-sm text-ink-soft; /* subtítulo de uma linha */
+        @apply mt-1 text-sm text-ink-soft;
     }
 
     .page-actions {
-        @apply flex flex-wrap items-center gap-2; /* área das ações da página */
+        @apply flex flex-wrap items-center gap-2;
     }
 
     /* ---------- Tabela ---------- */
     .table-wrap {
-        @apply overflow-clip rounded-card border border-line bg-card; /* overflow-clip arredonda os cantos SEM quebrar o cabeçalho fixo (overflow-hidden quebraria) */
+        @apply overflow-clip rounded-card border border-line bg-card;
     }
 
     .table {
-        @apply w-full border-separate border-spacing-0 text-sm; /* border-separate é necessário para a borda do cabeçalho fixo acompanhar a rolagem */
+        @apply w-full border-separate border-spacing-0 text-sm;
     }
 
     .table thead th {
-        @apply sticky top-0 z-10 border-b border-line bg-support px-4 py-2.5 text-left text-xs font-semibold text-brand; /* cabeçalho fixo no topo ao rolar. REVISÃO: fundo Pale Sky e texto indigo (10,3:1), antes cinza sobre cinza */
+        @apply sticky top-0 z-10 border-b border-line bg-support px-4 py-2.5 text-left text-xs font-semibold text-brand;
     }
 
     .table tbody td {
-        @apply border-b border-line px-4 py-3 align-top; /* linhas de ~48px */
+        @apply border-b border-line px-4 py-3 align-top;
     }
 
     .table tbody tr:hover > td {
-        @apply bg-surface-hover; /* destaca a linha sob o mouse (texto auxiliar continua com 5,6:1) */
+        @apply bg-surface-hover;
     }
 
     .table tbody tr:last-child > td {
-        border-bottom-width: 0; /* a última linha não precisa de divisor: o card já tem borda */
+        border-bottom-width: 0;
     }
 
     .th-sort {
-        @apply inline-flex items-center gap-1 rounded-control text-ink-soft hover:text-brand; /* cabeçalho clicável para ordenar */
+        @apply inline-flex items-center gap-1 rounded-control text-ink-soft hover:text-brand;
     }
 
     .th-sort[aria-current="true"] {
-        @apply text-brand; /* a coluna ordenada fica em destaque (a seta também muda: nunca só a cor) */
+        @apply text-brand;
     }
 
     .cell-clamp {
-        @apply line-clamp-2; /* no máximo 2 linhas: o texto completo vai no atributo title */
+        @apply line-clamp-2;
     }
 
-    /* Telas estreitas: a tabela vira uma lista de cards (cada linha vira um card, cada célula mostra o seu rótulo). Marcação única, sem duplicar HTML */
+    /* Abaixo de 768px a tabela .table-stack vira lista de cards (cada célula mostra o rótulo de data-label) */
     @media (max-width: 767.98px) {
         .table-stack thead {
-            position: absolute; /* esconde o cabeçalho visualmente, mas o leitor de tela continua lendo */
+            position: absolute;
             width: 1px;
             height: 1px;
             overflow: hidden;
@@ -253,28 +251,28 @@
 
         .table-stack,
         .table-stack tbody {
-            display: block; /* deixa de ser tabela */
+            display: block;
         }
 
         .table-stack tr {
-            display: block; /* cada linha vira um bloco (card) */
+            display: block;
             position: relative;
             padding: 0.75rem 1rem;
             border-bottom: 1px solid rgb(var(--color-border-default));
         }
 
         .table-stack tr[hidden] {
-            display: none; /* linha de detalhes fechada continua escondida */
+            display: none;
         }
 
         .table-stack td {
-            display: block; /* cada célula vira uma linha do card */
+            display: block;
             padding: 0.125rem 0;
             border: 0;
         }
 
         .table-stack td[data-label]::before {
-            content: attr(data-label); /* mostra o nome da coluna acima do valor */
+            content: attr(data-label);
             display: block;
             margin-top: 0.5rem;
             font-size: 0.75rem;
@@ -283,7 +281,7 @@
         }
 
         .table-stack td.cell-expand {
-            position: absolute; /* botão de expandir no canto do card */
+            position: absolute;
             top: 0.5rem;
             right: 0.5rem;
             padding: 0;
@@ -292,213 +290,213 @@
 
     /* ---------- Paginação ---------- */
     .pager {
-        @apply flex flex-wrap items-center justify-between gap-3 px-1 text-sm text-ink-soft; /* "Mostrando X de Y" à esquerda, páginas à direita */
+        @apply flex flex-wrap items-center justify-between gap-3 px-1 text-sm text-ink-soft;
     }
 
     .pager-btn {
-        @apply inline-flex h-8 min-w-8 items-center justify-center rounded-control border border-line-control bg-card px-2 text-sm text-ink-soft transition-colors hover:border-accent-icon hover:bg-accent-soft hover:text-brand; /* botão de página. REVISÃO: hover em Sky Surge (antes indigo apagado) */
+        @apply inline-flex h-8 min-w-8 items-center justify-center rounded-control border border-line-control bg-card px-2 text-sm text-ink-soft transition-colors hover:border-accent-icon hover:bg-accent-soft hover:text-brand;
     }
 
     .pager-btn[aria-current="page"] {
-        @apply border-brand bg-brand text-white hover:bg-brand hover:text-white; /* página atual: indigo cheio (12,2:1) */
+        @apply border-brand bg-brand text-white hover:bg-brand hover:text-white;
     }
 
     .pager-btn[aria-disabled="true"] {
-        @apply pointer-events-none opacity-50; /* anterior/próxima indisponíveis */
+        @apply pointer-events-none opacity-50;
     }
 
     /* ---------- Chips, etiquetas (badge) e links ---------- */
     .chip {
-        @apply inline-flex items-center gap-1 rounded-full border border-line-control bg-card py-1 pl-3 pr-1.5 text-xs text-ink; /* filtro ativo, removível */
+        @apply inline-flex items-center gap-1 rounded-full border border-line-control bg-card py-1 pl-3 pr-1.5 text-xs text-ink;
     }
 
     .chip-remove {
-        @apply flex h-5 w-5 items-center justify-center rounded-full text-ink-soft hover:bg-accent-tint hover:text-brand; /* "x" do chip (REVISÃO: hover sky) */
+        @apply flex h-5 w-5 items-center justify-center rounded-full text-ink-soft hover:bg-accent-tint hover:text-brand;
     }
 
     .badge {
-        @apply inline-flex items-center gap-1 rounded-full bg-support px-2 py-0.5 text-xs font-medium text-brand; /* etiqueta neutra em Pale Sky (ex.: "9 módulos"): indigo sobre pale-100 = 10,3:1 */
+        @apply inline-flex items-center gap-1 rounded-full bg-support px-2 py-0.5 text-xs font-medium text-brand;
     }
 
     .badge-accent {
-        @apply bg-accent-tint text-brand; /* etiqueta em tom sky */
+        @apply bg-accent-tint text-brand;
     }
 
     .badge-highlight {
-        @apply bg-highlight-tint text-ink; /* etiqueta de destaque: fundo coral claro e texto escuro (13:1); o ponto coral reforça sem depender só da cor */
+        @apply bg-highlight-tint text-ink;
     }
 
     .badge-highlight::before {
-        content: ""; /* ponto coral à esquerda do texto */
+        content: "";
         @apply h-1.5 w-1.5 rounded-full bg-highlight-graphic;
     }
 
-    /* REVISÃO: etiquetas de SITUAÇÃO (cores de feedback, nunca as da identidade). Sempre com texto, nunca só a cor */
+    /* Etiquetas de situação (página de Alunos): cores de feedback, sempre com texto */
     .badge-success {
-        @apply bg-success-soft text-success; /* aprovada (4,84:1) */
+        @apply bg-success-soft text-success;
     }
 
     .badge-danger {
-        @apply bg-danger-soft text-danger; /* reprovada (5,98:1) */
+        @apply bg-danger-soft text-danger;
     }
 
     .badge-warning {
-        @apply bg-warning-soft text-warning; /* atenção: prazo vencido, nota abaixo de 7 (7,45:1) */
+        @apply bg-warning-soft text-warning;
     }
 
-    /* ---------- REVISÃO: lista mestre-detalhe (item clicável que seleciona um registro). Chama-se list-row e NÃO list-item porque o Tailwind já tem o utilitário list-item (display: list-item), que vencia este componente e empilhava o avatar sobre o texto ---------- */
+    /* ---------- Lista mestre-detalhe (página de Alunos). Não se chama list-item: o Tailwind tem um utilitário com esse nome ---------- */
     .list-row {
-        @apply relative flex items-center gap-3 rounded-control border border-line px-3 py-2.5 transition-colors hover:border-accent-icon hover:bg-surface-hover; /* item da lista. REVISÃO: hover em Sky Surge (contorno sky + fundo sky claro) */
+        @apply relative flex items-center gap-3 rounded-control border border-line px-3 py-2.5 transition-colors hover:border-accent-icon hover:bg-surface-hover;
     }
 
     .list-row[aria-current="true"] {
-        @apply border-accent-icon bg-accent-soft; /* REVISÃO: item selecionado no mesmo padrão do item ativo da sidebar: fundo sky claro, contorno sky e barra Sky Surge à esquerda (não é só a cor: o aria-current e o painel ao lado mudam juntos) */
+        @apply border-accent-icon bg-accent-soft;
     }
 
     .list-row[aria-current="true"]::before {
-        content: ""; /* barra de acento na borda esquerda, igual à da sidebar */
+        content: "";
         @apply absolute -left-px bottom-2 top-2 w-[3px] rounded-r-full bg-accent-icon;
     }
 
     .avatar {
-        @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-brand; /* REVISÃO: iniciais num círculo Sky Surge ★ cheio (indigo sobre sky = 5,42:1; antes um sky pastel) */
+        @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-brand;
     }
 
     .list-row[aria-current="true"] .avatar {
-        @apply bg-brand text-white; /* REVISÃO: no aluno selecionado o avatar inverte para indigo cheio (12,19:1) */
+        @apply bg-brand text-white;
     }
 
-    /* ---------- REVISÃO: lista de definições (rótulo em cima, valor embaixo), usada nos detalhes da tentativa ---------- */
+    /* ---------- Lista de definições (rótulo em cima, valor embaixo): detalhes da tentativa ---------- */
     .facts {
-        @apply grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3; /* 2 colunas no celular, 3 a partir de 640px */
+        @apply grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3;
     }
 
-    /* REVISÃO: versão para colunas estreitas (o painel de 26rem da página de Alunos): sempre 2 colunas, mesmo em tela larga (o sm: do .facts olha a janela, não a coluna) */
+    /* Sempre 2 colunas, para colunas estreitas como o painel da página de Alunos */
     .facts.facts-compact {
         @apply grid-cols-2 sm:grid-cols-2;
     }
 
     .facts dt {
-        @apply text-xs text-ink-muted; /* rótulo */
+        @apply text-xs text-ink-muted;
     }
 
     .facts dd {
-        @apply mt-0.5 text-sm font-medium text-ink; /* valor */
+        @apply mt-0.5 text-sm font-medium text-ink;
     }
 
     .link {
-        @apply font-medium text-accent-strong underline decoration-accent-strong/40 underline-offset-2 hover:decoration-accent-strong; /* link de texto: azul sky escuro (5,5:1) COM sublinhado, para não depender só da cor */
+        @apply font-medium text-accent-strong underline decoration-accent-strong/40 underline-offset-2 hover:decoration-accent-strong;
     }
 
     /* ---------- Avisos (alert) e notificações (toast): cores de FEEDBACK, independentes da identidade ---------- */
     .alert {
-        @apply flex items-start gap-3 rounded-control border px-3.5 py-3 text-sm; /* aviso fixo na página (sempre com ícone e texto) */
+        @apply flex items-start gap-3 rounded-control border px-3.5 py-3 text-sm;
     }
 
     .alert-success {
-        @apply border-success/30 bg-success-soft text-success; /* verde: texto 4,84:1 sobre o fundo */
+        @apply border-success/30 bg-success-soft text-success;
     }
 
     .alert-danger {
-        @apply border-danger/30 bg-danger-soft text-danger; /* vermelho profundo: texto 5,98:1 (bem diferente do coral da identidade) */
+        @apply border-danger/30 bg-danger-soft text-danger;
     }
 
     .alert-warning {
-        @apply border-warning-icon/50 bg-warning-soft text-warning; /* atenção: fundo Banana suave e texto marrom escuro (7,45:1) */
+        @apply border-warning-icon/50 bg-warning-soft text-warning;
     }
 
     .alert-warning > i {
-        @apply text-warning-icon; /* ícone ocre (3,2:1, mínimo para elementos gráficos) */
+        @apply text-warning-icon;
     }
 
     .alert-info {
-        @apply border-accent-strong/30 bg-accent-soft text-accent-strong; /* informação: sky escuro sobre sky claro (5,1:1) */
+        @apply border-accent-strong/30 bg-accent-soft text-accent-strong;
     }
 
     .alert-close {
-        @apply -my-1 -mr-1.5 ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-control opacity-70 hover:bg-interactive/[0.06] hover:opacity-100; /* botão de fechar o aviso */
+        @apply -my-1 -mr-1.5 ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-control opacity-70 hover:bg-interactive/[0.06] hover:opacity-100;
     }
 
     .toast-region {
-        @apply pointer-events-none fixed bottom-4 right-4 z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2; /* canto inferior direito; a região não bloqueia cliques, só os toasts */
+        @apply pointer-events-none fixed bottom-4 right-4 z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2;
     }
 
     .toast {
-        @apply pointer-events-auto flex items-start gap-3 rounded-card border border-line bg-card px-4 py-3 text-sm text-ink shadow-pop; /* notificação temporária (única com sombra) */
-        animation: toast-in 0.2s ease-out; /* entra deslizando */
+        @apply pointer-events-auto flex items-start gap-3 rounded-card border border-line bg-card px-4 py-3 text-sm text-ink shadow-pop;
+        animation: toast-in 0.2s ease-out;
     }
 
     .toast[data-saindo="true"] {
-        @apply opacity-0 transition-opacity; /* some suavemente antes de sair do DOM */
+        @apply opacity-0 transition-opacity;
     }
 
-    /* ---------- REVISÃO: diálogo de confirmação (<dialog> nativo: o navegador já prende o foco, fecha no Esc e escurece o fundo) ---------- */
+    /* ---------- Diálogo de confirmação (<dialog> do _Layout, aberto pelo ui.js) ---------- */
     .dialog {
-        @apply m-auto w-[min(28rem,calc(100vw-2rem))] rounded-card border border-line bg-card p-0 text-ink shadow-pop; /* centralizado, largura máxima de 28rem */
+        @apply m-auto w-[min(28rem,calc(100vw-2rem))] rounded-card border border-line bg-card p-0 text-ink shadow-pop;
     }
 
     .dialog::backdrop {
-        background-color: rgb(var(--color-overlay) / 0.5); /* véu indigo escuro atrás do diálogo */
+        background-color: rgb(var(--color-overlay) / 0.5);
     }
 
     .dialog-body {
-        @apply px-5 pb-4 pt-5; /* título e mensagem */
+        @apply px-5 pb-4 pt-5;
     }
 
     .dialog-title {
-        @apply text-lg font-semibold text-ink; /* pergunta principal */
+        @apply text-lg font-semibold text-ink;
     }
 
     .dialog-text {
-        @apply mt-1.5 text-sm text-ink-soft; /* consequência da ação */
+        @apply mt-1.5 text-sm text-ink-soft;
     }
 
     .dialog-actions {
-        @apply flex justify-end gap-2 rounded-b-card border-t border-line bg-subtle px-5 py-3; /* Cancelar à esquerda, ação à direita (REVISÃO: rodapé em Pale Sky claro) */
+        @apply flex justify-end gap-2 rounded-b-card border-t border-line bg-subtle px-5 py-3;
     }
 
     /* ---------- Tooltip (um único elemento criado pelo ui.js) ---------- */
     .tooltip {
-        @apply pointer-events-none fixed z-[60] rounded-control bg-brand px-2 py-1 text-xs font-medium text-white shadow-pop; /* balão Twilight Indigo (12,19:1), posicionado pelo JavaScript */
+        @apply pointer-events-none fixed z-[60] rounded-control bg-brand px-2 py-1 text-xs font-medium text-white shadow-pop;
     }
 
     /* ---------- Estado vazio ---------- */
     .empty {
-        @apply flex flex-col items-center px-6 py-14 text-center; /* ícone, título e descrição centralizados */
+        @apply flex flex-col items-center px-6 py-14 text-center;
     }
 
     .empty-icon {
-        @apply mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-highlight-tint text-xl text-brand; /* ícone indigo num círculo coral claro (9,8:1) */
+        @apply mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-highlight-tint text-xl text-brand;
     }
 
     .empty-title {
-        @apply text-base font-semibold text-ink; /* o que aconteceu */
+        @apply text-base font-semibold text-ink;
     }
 
     .empty-desc {
-        @apply mt-1 max-w-sm text-sm text-ink-soft; /* o que fazer */
+        @apply mt-1 max-w-sm text-sm text-ink-soft;
     }
 
     /* ---------- Carregamento: véu com spinner por cima de um card (gráficos) ---------- */
     .is-loading {
-        @apply relative; /* referência para o véu */
+        @apply relative;
     }
 
     .is-loading::after {
-        content: ""; /* véu semitransparente sobre o conteúdo antigo */
+        content: "";
         @apply absolute inset-0 z-10 rounded-card bg-card/70;
     }
 
     .is-loading::before {
-        content: ""; /* spinner no centro */
+        content: "";
         @apply spinner absolute left-1/2 top-1/2 z-20 -ml-2 -mt-2 text-accent-strong;
     }
 }
 
 @keyframes toast-in {
     from {
-        opacity: 0; /* começa invisível */
-        transform: translateY(0.5rem); /* e um pouco abaixo */
+        opacity: 0;
+        transform: translateY(0.5rem);
     }
     to {
         opacity: 1;
@@ -508,17 +506,16 @@
 
 @media (prefers-reduced-motion: reduce) {
     .toast {
-        animation: none; /* quem pede menos movimento no sistema não vê a animação */
+        animation: none;
     }
 
     .spinner,
     .btn[aria-busy="true"]::before {
-        animation-duration: 1.5s; /* o spinner continua girando (é indicador de progresso), só mais devagar */
+        animation-duration: 1.5s;
     }
 }
 
-/* ---------- Modo de alto contraste do sistema (Windows "Contraste alto"): o navegador troca as cores por cores do sistema e apaga fundos.
-   Estas regras devolvem às formas o que antes só a cor de fundo comunicava (botões, cards, página atual, foco) ---------- */
+/* ---------- Alto contraste do Windows: devolve contornos ao que só a cor de fundo comunicava ---------- */
 @media (forced-colors: active) {
     .btn,
     .pager-btn,
@@ -526,7 +523,7 @@
     .badge,
     .kpi-icon,
     .empty-icon {
-        border: 1px solid ButtonText; /* contorno visível em tudo que era só um bloco de cor */
+        border: 1px solid ButtonText;
     }
 
     .card,
@@ -534,20 +531,20 @@
     .alert,
     .toast,
     .tooltip {
-        border: 1px solid CanvasText; /* limites de cards e avisos */
+        border: 1px solid CanvasText;
     }
 
     .input {
-        border-color: FieldText; /* borda do campo */
+        border-color: FieldText;
     }
 
     .pager-btn[aria-current="page"],
     .th-sort[aria-current="true"] {
-        outline: 2px solid Highlight; /* página atual / coluna ordenada continuam marcadas sem depender do fundo */
+        outline: 2px solid Highlight;
         outline-offset: 1px;
     }
 
     :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-        outline-color: Highlight; /* foco na cor de destaque do sistema */
+        outline-color: Highlight;
     }
 }

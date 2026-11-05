@@ -8,71 +8,70 @@ namespace PSGN.Presentation.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly CursoService _cursoService; // usado para LER os cursos que aparecem na tela
-        private readonly SincronizacaoService _sincronizacaoService; // usado pelo botão "Sincronizar"
-        private readonly ILogger<HomeController> _logger; // log do ASP.NET (injetado, ainda não usado)
+        private readonly CursoService _cursoService;
+        private readonly SincronizacaoService _sincronizacaoService;
+        private readonly ILogger<HomeController> _logger;
 
-        public HomeController( // o ASP.NET entrega as dependências pelo construtor
-            ILogger<HomeController> logger, // parâmetro do log
-            CursoService cursoService, // parâmetro do serviço de cursos
-            SincronizacaoService sincronizacaoService // parâmetro do serviço de sincronização
-            ) // fim da lista de parâmetros
+        public HomeController(
+            ILogger<HomeController> logger,
+            CursoService cursoService,
+            SincronizacaoService sincronizacaoService
+            )
         {
-            _logger = logger; // guarda o log
-            _cursoService = cursoService; // guarda o serviço de cursos
-            _sincronizacaoService = sincronizacaoService; // guarda o serviço de sincronização
-        } // fim do construtor
+            _logger = logger;
+            _cursoService = cursoService;
+            _sincronizacaoService = sincronizacaoService;
+        }
 
-        public async Task<IActionResult> Index() // action da página inicial; só LÊ do banco, não sincroniza
+        // Tela de Cursos: cursos e módulos sincronizados
+        public async Task<IActionResult> Index()
         {
-            var cursos = await _cursoService.ListarCursosAsync(); // busca no banco os cursos já com coordenador e módulos
+            var cursos = await _cursoService.ListarCursosAsync();
 
-            var viewModel = new HomeViewModel // monta o objeto que a View (Razor) vai exibir
-            { // inicializador de objeto
-                MensagemSincronizacao = TempData["MensagemSincronizacao"] as string, // pega o aviso deixado pela action Sincronizar (null se não houver)
-                ErroSincronizacao = TempData["ErroSincronizacao"] as string, // REVISÃO: pega o aviso de erro deixado pela action Sincronizar (null se não houver)
-                Cursos = cursos.Select(curso => new CursoItem // converte cada Curso do domain em um CursoItem da tela
-                { // inicializador do CursoItem
-                    Nome = curso.Nome, // nome do curso
-                    Coordenador = curso.Coordenador.Nome, // nome do coordenador
-                    Modulos = curso.Modulos // parte da lista de módulos do curso
-                        .OrderBy(modulo => modulo.Nome) // ordena alfabeticamente
-                        .Select(modulo => new ModulosItem { Nome = modulo.Nome, IdMoodle = modulo.IdMoodle }) // converte cada Modulo em ModuloItem, mostrando o id do Moodle (não o id do nosso banco)
-                        .ToList() // fecha como lista
-                }).ToList() // fim do CursoItem e da lista de cursos
-            }; // fim do HomeViewModel
-            return View(viewModel); // entrega o viewModel à View Index
-        } // fim da action Index
-
-        [HttpPost] // só responde a POST, porque sincronizar altera dados e um GET pode ser disparado sozinho por navegador ou robô
-        [ValidateAntiForgeryToken] // exige o token do formulário, impedindo que outro site dispare este POST
-        public async Task<IActionResult> Sincronizar() // action chamada pelo botão "Sincronizar"
-        {
-            // REVISÃO: antes, qualquer falha de conexão (ex.: o erro de SSL do Moodle) estourava como página de exceção com stack trace.
-            // Agora as falhas de REDE (Moodle ou NSG fora do ar, certificado inválido, tempo esgotado) viram um aviso na tela e vão para o log
-            try // tenta sincronizar
+            var viewModel = new HomeViewModel
             {
-                // REVISÃO: o service agora devolve List<Curso> (domain), então a mensagem usa a quantidade de cursos sincronizados
-                var cursos = await _sincronizacaoService.SincronizarTudoAsync("EAD", 3); // roda cursos -> módulos -> alunos -> tentativas, usando a categoria raiz "EAD" e profundidade 3
+                MensagemSincronizacao = TempData["MensagemSincronizacao"] as string,
+                ErroSincronizacao = TempData["ErroSincronizacao"] as string,
+                Cursos = cursos.Select(curso => new CursoItem
+                {
+                    Nome = curso.Nome,
+                    Coordenador = curso.Coordenador.Nome,
+                    Modulos = curso.Modulos
+                        .OrderBy(modulo => modulo.Nome)
+                        .Select(modulo => new ModulosItem { Nome = modulo.Nome, IdMoodle = modulo.IdMoodle })
+                        .ToList()
+                }).ToList()
+            };
+            return View(viewModel);
+        }
 
-                TempData["MensagemSincronizacao"] = $"Sincronização concluída: {cursos.Count} curso(s) sincronizado(s) (módulos, alunos e tentativas incluídos)."; // TempData sobrevive ao redirect, então o Index consegue mostrar o aviso
-            } // fim do try
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException) // HttpRequestException = não conectou/SSL/HTTP com erro; TaskCanceledException = tempo esgotado. Erros de lógica continuam estourando de propósito
-            {
-                _logger.LogError(ex, "Falha de conexão ao sincronizar com o Moodle/NSG."); // registra o erro completo no log (o _logger estava injetado e sem uso)
-                var detalhe = ex.InnerException?.Message ?? ex.Message; // a causa real costuma estar na exceção interna (ex.: "The remote certificate is invalid...")
-                TempData["ErroSincronizacao"] = $"Não foi possível conectar ao Moodle ou ao NSG. Tente novamente em alguns minutos. Detalhe técnico: {detalhe}"; // aviso que a Index mostra em vermelho
-            } // fim do catch
-
-            return RedirectToAction(nameof(Index)); // redireciona para o Index (Post/Redirect/Get): um F5 depois não sincroniza de novo
-        } // fim da action Sincronizar
-
-        // REVISÃO: removida a action Privacy (template em inglês, sem nenhum link apontando para ela) junto com a view Views/Home/Privacy.cshtml
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)] // impede o navegador de guardar a página de erro em cache
-        public IActionResult Error() // action da página de erro (padrão do template)
+        // Botão "Sincronizar com Moodle e NSG" da tela de Cursos
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Sincronizar()
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier }); // envia o id da requisição para a View, para facilitar achar o erro no log
-        } // fim da action Error
-    } // fim da classe
-} // fim do namespace
+            // Falhas de rede (Moodle/NSG fora do ar, certificado, tempo esgotado) viram aviso na tela e vão para o log
+            try
+            {
+                var cursos = await _sincronizacaoService.SincronizarTudoAsync("EAD", 3);
+
+                TempData["MensagemSincronizacao"] = $"Sincronização concluída: {cursos.Count} curso(s) sincronizado(s) (módulos, alunos e tentativas incluídos).";
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            {
+                _logger.LogError(ex, "Falha de conexão ao sincronizar com o Moodle/NSG.");
+                var detalhe = ex.InnerException?.Message ?? ex.Message;
+                TempData["ErroSincronizacao"] = $"Não foi possível conectar ao Moodle ou ao NSG. Tente novamente em alguns minutos. Detalhe técnico: {detalhe}";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+    }
+}

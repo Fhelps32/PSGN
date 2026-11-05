@@ -9,11 +9,9 @@ namespace PSGN.Application.Interfaces.ExternoServices
 {
     public interface IExternoModulo
     {
-        //REVISÃO: o id da categoria agora é int (antes era string, e o ModuloService tinha que converter de um pro outro)
+        // Módulos ("courses" do Moodle) de uma categoria. Usado pelo ModuloService
         public Task<List<ModuloSaidaJsonMoodleDto>> ObterModulosPeloIdCategoriaAsync(int idCategoriaMoodle);
-        //REVISÃO: o retorno agora é anulável (?). O DTO é um struct, então o antigo FirstOrDefault devolvia um struct "zerado"
-        //(IdQuestionario = 0) quando o módulo não tem "Avaliação Final do Módulo", e ninguém conseguia distinguir isso de um
-        //questionário real. Agora devolve null nesse caso. Também ganhou o sufixo Async, como os outros métodos.
+        // Questionário "Avaliação Final do Módulo" (null se o módulo não tiver). Usado pelo ModuloService para o IdCmidMoodle
         public Task<ModuloQuestionarioSaidaJsonMoodleDto?> ObterQuestionarioFinalPeloIdModuloAsync(int idModuloMoodle);
     }
 }

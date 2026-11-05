@@ -1,8 +1,7 @@
-/* REVISÃO: entrada do Tailwind. O "npm run css:build" junta estes arquivos, lê as classes usadas nas views/JS e gera wwwroot/css/tailwind.css.
-   Os @import precisam vir ANTES das diretivas do Tailwind */
-@import "./tokens.css";     /* variáveis de design (cores, fonte, raios...) */
-@import "./components.css"; /* botões, campos, cards, tabela, avisos... */
-@import "./layout.css";     /* sidebar, barra superior e área de conteúdo */
+/* Entrada do Tailwind: "npm run css:build" junta estes arquivos e gera wwwroot/css/tailwind.css. Os @import vêm antes das diretivas */
+@import "./tokens.css";
+@import "./components.css";
+@import "./layout.css";
 
 @tailwind base;
 @tailwind components;

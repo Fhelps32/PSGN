@@ -9,8 +9,7 @@ namespace PSGN.Application.Interfaces.ExternoServices
 {
     public interface IExternoUsuario
     {
-        //REVISÃO: renomeado de ObterUsuariosPorModuloAsync. O nome agora diz que só vêm alunos (a implementação já filtrava
-        //"student") e que o id é o do MÓDULO no Moodle, que foi exatamente o que estava sendo passado errado.
+        // Alunos (papel "student") inscritos num módulo do Moodle. Usado pelo UsuarioService
         public Task<IEnumerable<UsuarioSaidaJsonMoodleDto>> ObterAlunosDoModuloAsync(int idModuloMoodle);
     }
 }

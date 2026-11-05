@@ -19,12 +19,11 @@ namespace PSGN.Infra.Data.Mappings
                    .HasForeignKey(t => t.IdAlunoModulo)
                    .OnDelete(DeleteBehavior.Cascade);
 
-            //REVISÃO: o Prazo era gravado como "time" (padrão do EF para TimeSpan), que no SQL Server só aceita menos de 24 horas.
-            //O prazo da tentativa é de 40 dias, então agora é gravado em ticks (bigint). EXIGE MIGRATION: Add-Migration prazo_tentativa_em_ticks
+            // Prazo em ticks (bigint): a coluna "time" só aceita menos de 24h. Migration: prazo_tentativa_em_ticks
             builder.Property(t => t.Prazo)
                    .HasConversion<long>();
 
-            //REVISÃO: propriedades CALCULADAS da regra de tentativas (não são colunas): o EF não deve tentar mapeá-las
+            // Propriedades calculadas da regra de tentativas (não são colunas)
             builder.Ignore(t => t.Aberta);
             builder.Ignore(t => t.TemProva);
             builder.Ignore(t => t.DataLimite);

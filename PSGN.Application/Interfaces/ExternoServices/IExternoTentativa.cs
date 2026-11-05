@@ -7,12 +7,10 @@ using System.Threading.Tasks;
 
 namespace PSGN.Application.Interfaces.ExternoServices
 {
-    //REVISÃO: o nome da interface (e do arquivo) estava com erro de digitação: IExternoTentaiva -> IExternoTentativa.
+    // Provas do Moodle. Usado pelo TentativaService na sincronização
     public interface IExternoTentativa
     {
-        //REVISÃO: antes era "ObterTodasTentativasPeloIdTentativaAsync(int IdTentativa)". O parâmetro NÃO é o id de uma
-        //tentativa: o Moodle (função local_quizattempts_get_attempts) recebe o "cmid", o id do questionário "Avaliação Final
-        //do Módulo" dentro do curso. No PSGN ele fica em Modulo.IdCmidMoodle. O nome antigo induzia a passar o id errado.
+        // Tentativas de um questionário pelo cmid (Modulo.IdCmidMoodle), não pelo id de uma tentativa
         public Task<List<TentativaSaidaJsonMoodleDto>> ObterTentativasDoQuestionarioAsync(int idCmidMoodle);
     }
 }

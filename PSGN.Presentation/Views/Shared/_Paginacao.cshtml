@@ -1,29 +1,28 @@
 @model PaginacaoViewModel
-@* REVISÃO: partial nova (a que o PSG repetia duas vezes na mesma página, agora uma só). Os links levam os filtros e a ordenação ativos (Model.Rota) mais o número da página.
-   Só aparece quando há registros; os botões de página só quando há mais de uma página *@
+@* Paginação com os filtros ativos (Model.Rota). Modelo: PaginacaoViewModel *@
 @if (Model.TotalItens > 0)
 {
-    var inicio = Math.Max(1, Model.PaginaAtual - 2); // janela de páginas mostradas: atual ± 2, sem passar dos limites
-    var fim = Math.Min(Model.TotalPaginas, Model.PaginaAtual + 2); // fim da janela
+    var inicio = Math.Max(1, Model.PaginaAtual - 2);
+    var fim = Math.Min(Model.TotalPaginas, Model.PaginaAtual + 2);
 
     <nav class="pager" aria-label="Paginação">
-        <p>Mostrando <span class="font-medium text-ink tabular-nums">@Model.PrimeiroItem–@Model.UltimoItem</span> de <span class="font-medium text-ink tabular-nums">@Model.TotalItens</span> @Model.Rotulo</p> @* "Mostrando 1–25 de 94 alunos" *@
+        <p>Mostrando <span class="font-medium text-ink tabular-nums">@Model.PrimeiroItem–@Model.UltimoItem</span> de <span class="font-medium text-ink tabular-nums">@Model.TotalItens</span> @Model.Rotulo</p>
 
         @if (Model.TotalPaginas > 1)
         {
             <ul class="flex items-center gap-1">
-                <li> @* página anterior *@
+                <li>
                     <a asp-action="Index" asp-all-route-data="Model.Rota" asp-route-Pagina="@Math.Max(1, Model.PaginaAtual - 1)" class="pager-btn"
                        aria-label="Página anterior" aria-disabled="@(Model.TemAnterior ? null : "true")" tabindex="@(Model.TemAnterior ? null : "-1")"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
                 </li>
-                @for (var p = inicio; p <= fim; p++) // números de página
+                @for (var p = inicio; p <= fim; p++)
                 {
                     <li>
                         <a asp-action="Index" asp-all-route-data="Model.Rota" asp-route-Pagina="@p" class="pager-btn tabular-nums"
-                           aria-label="Página @p" aria-current="@(p == Model.PaginaAtual ? "page" : null)">@p</a> @* a atual leva aria-current="page" (o CSS destaca) *@
+                           aria-label="Página @p" aria-current="@(p == Model.PaginaAtual ? "page" : null)">@p</a>
                     </li>
                 }
-                <li> @* próxima página *@
+                <li>
                     <a asp-action="Index" asp-all-route-data="Model.Rota" asp-route-Pagina="@Math.Min(Model.TotalPaginas, Model.PaginaAtual + 1)" class="pager-btn"
                        aria-label="Próxima página" aria-disabled="@(Model.TemProxima ? null : "true")" tabindex="@(Model.TemProxima ? null : "-1")"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
                 </li>

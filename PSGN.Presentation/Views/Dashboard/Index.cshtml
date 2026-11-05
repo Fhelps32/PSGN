@@ -1,23 +1,21 @@
 @model DashboardViewModel
-@* REVISÃO: Dashboard no padrão do redesign. Indicadores viraram links (sem botões "Ver…" repetindo a sidebar), os gráficos ficam em cards com filtros alinhados no cabeçalho,
-   a pizza tem legenda com valor e porcentagem, e o botão "Sincronizar" saiu daqui: a sincronização fica só em Cursos, que é de onde ela é operada *@
+@* Dashboard (DashboardController.Index): indicadores, gráfico de linha (alunos por mês) e de pizza (alunos por curso/módulo). Gráficos: dashboard.js *@
 @{
-    ViewData["Title"] = "Dashboard"; // título da aba e da página
-    ViewData["Section"] = "Visão geral"; // grupo da sidebar (lido pela partial _PageHeader)
-    ViewData["Subtitle"] = "Alunos e cursos sincronizados do Moodle"; // subtítulo (lido pela partial _PageHeader)
+    ViewData["Title"] = "Dashboard";
+    ViewData["Section"] = "Visão geral";
+    ViewData["Subtitle"] = "Alunos e cursos sincronizados do Moodle";
 }
 
 <div class="page-header">
-    <partial name="_PageHeader" /> @* grupo + título + subtítulo *@
+    <partial name="_PageHeader" />
 </div>
 
-@* ===== Indicadores: só números que existem no ViewModel. O card inteiro é um link ===== *@
+@* ===== Indicadores (o card inteiro é um link) ===== *@
 <div class="mb-6 grid gap-4 sm:grid-cols-2">
-    <partial name="_Kpi" model='new IndicadorViewModel { Rotulo = "Total de alunos", Valor = Model.TotalAlunos, Icone = "bi-people", Controller = "Alunos" }' /> @* pessoas distintas (uma pessoa em 2 cursos conta 1) *@
-    <partial name="_Kpi" model='new IndicadorViewModel { Rotulo = "Total de cursos", Valor = Model.TotalCursos, Icone = "bi-book", Tom = "highlight", Controller = "Home" }' /> @* a tela de Cursos é o controller Home; REVISÃO: tile coral, para diferenciar a categoria *@
+    <partial name="_Kpi" model='new IndicadorViewModel { Rotulo = "Total de alunos", Valor = Model.TotalAlunos, Icone = "bi-people", Controller = "Alunos" }' />
+    <partial name="_Kpi" model='new IndicadorViewModel { Rotulo = "Total de cursos", Valor = Model.TotalCursos, Icone = "bi-book", Tom = "highlight", Controller = "Home" }' />
 </div>
 
-@* Duas colunas só a partir de 1280px (xl): abaixo disso os cards empilham e cada gráfico usa a largura toda *@
 <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
 
     @* ----- Gráfico em linha: alunos cadastrados por mês ----- *@
@@ -27,17 +25,17 @@
                 <h2 id="tituloLinha" class="card-title">Histórico de alunos</h2>
                 <p class="card-desc">Alunos cadastrados no PSGN a cada mês</p>
             </div>
-            <div class="flex w-full flex-wrap gap-2 sm:w-auto"> @* os filtros ficam juntos no cabeçalho; em telas estreitas ocupam a largura toda *@
-                @* Sem opção vazia: "tempo" é int no controller e um value="" daria erro 400 *@
+            <div class="flex w-full flex-wrap gap-2 sm:w-auto">
+                @* Sem opção vazia: "tempo" é int no controller e value="" daria erro 400 *@
                 <select id="selectTempoLinha" aria-label="Período do histórico" asp-items="Model.LineGraphSection.Tempo" class="input w-full sm:w-auto"></select>
                 <select id="selectCursoLinha" aria-label="Curso do histórico" asp-items="Model.LineGraphSection.Cursos" class="input w-full sm:w-56">
-                    <option value="">Todos os cursos</option> @* value vazio = cursoId null no controller *@
+                    <option value="">Todos os cursos</option>
                 </select>
             </div>
         </div>
         <div class="card-body">
-            <div class="relative h-72"> @* altura fixa: o Chart.js preenche o container (maintainAspectRatio: false) *@
-                @* role="img" + aria-label dão um texto alternativo ao gráfico; o dashboard.js reescreve o texto com os valores reais *@
+            <div class="relative h-72">
+                @* role="img" + aria-label: texto alternativo, reescrito pelo dashboard.js com os valores *@
                 <canvas id="lineGraphAlunos" role="img" aria-label="Gráfico de linha: alunos cadastrados por mês"></canvas>
             </div>
         </div>
@@ -46,42 +44,38 @@
     @* ----- Gráfico de pizza: alunos por curso (ou por módulo) ----- *@
     <section class="card min-w-0" id="cardPizza" aria-labelledby="tituloPizza">
         <div class="card-header">
-            <div class="w-full"> @* título em cima e select embaixo, com a largura do card: os nomes dos cursos são longos *@
+            <div class="w-full">
                 <h2 id="tituloPizza" class="card-title">Alunos por curso</h2>
                 <p class="card-desc">Escolha um curso para ver a divisão por módulo</p>
                 <select id="selectCursoPizza" aria-label="Curso do gráfico de alunos por curso" asp-items="Model.SectorGraphSection.Cursos" class="input mt-3">
-                    <option value="">Todos os cursos</option> @* vazio = uma fatia por curso; com curso = uma fatia por módulo *@
+                    <option value="">Todos os cursos</option>
                 </select>
             </div>
         </div>
         <div class="card-body flex flex-col gap-5 md:flex-row md:items-center xl:flex-col xl:items-stretch">
-            <div class="relative mx-auto h-48 w-48 shrink-0 md:mx-0 xl:mx-auto"> @* a pizza fica centralizada acima da legenda na coluna estreita e ao lado dela em telas médias *@
-                @* texto alternativo do gráfico (reescrito pelo dashboard.js com os valores); a legenda ao lado também é lida pelo leitor de tela *@
+            <div class="relative mx-auto h-48 w-48 shrink-0 md:mx-0 xl:mx-auto">
                 <canvas id="pieGraphCursos" role="img" aria-label="Gráfico de pizza: alunos por curso"></canvas>
             </div>
-            @* Legenda em HTML (preenchida pelo JavaScript): cor, nome, quantidade e porcentagem. É ela que garante a leitura sem depender só da cor *@
+            @* Legenda em HTML (dashboard.js): cor, nome, quantidade e porcentagem *@
             <ul id="pieLegenda" class="min-w-0 flex-1 space-y-2.5 text-xs"></ul>
         </div>
     </section>
 </div>
 
 @section Scripts {
-    @* Chart.js 4.4.4 (mesmo arquivo do PSG, copiado para wwwroot/lib/chart.js/dist) *@
     <script src="~/lib/chart.js/dist/chart.umd.js" asp-append-version="true"></script>
 
-    @* Os dados do ViewModel e as URLs dos endpoints chegam ao JavaScript por este bloco JSON (type="application/json" não é executado pelo navegador).
-       O Json.Serialize gera JSON válido, com acentos e aspas tratados (o Razor, sozinho, codificaria "Gestão" como "Gest&#xE3;o" dentro de <script>).
-       O Url.Action monta as URLs certas mesmo se o site rodar em um subcaminho *@
+    @* Dados do ViewModel e URLs dos endpoints para o dashboard.js (JSON não executável; Json.Serialize trata acentos e aspas) *@
     <script id="dashboard-data" type="application/json">
         @Json.Serialize(new
         {
-            lineLabels = Model.LineGraphSection.ValueLineGraph.Select(p => p.Data.ToString("MM/yyyy")), // rótulos do eixo X (meses)
-            lineData = Model.LineGraphSection.ValueLineGraph.Select(p => p.QuantidadeAlunos), // valores do eixo Y (alunos por mês)
-            pieLabels = Model.SectorGraphSection.ValueSectorGraph.Select(f => string.IsNullOrEmpty(f.Modulo) ? f.Curso : $"{f.Curso} - {f.Modulo}"), // legenda das fatias
-            pieData = Model.SectorGraphSection.ValueSectorGraph.Select(f => f.QuantidadeAlunos), // tamanho de cada fatia
-            urlLinha = Url.Action("GetLineGraphData", "Dashboard"), // endpoint do gráfico em linha
-            urlPizza = Url.Action("GetPieGraphData", "Dashboard") // endpoint do gráfico de pizza
+            lineLabels = Model.LineGraphSection.ValueLineGraph.Select(p => p.Data.ToString("MM/yyyy")),
+            lineData = Model.LineGraphSection.ValueLineGraph.Select(p => p.QuantidadeAlunos),
+            pieLabels = Model.SectorGraphSection.ValueSectorGraph.Select(f => string.IsNullOrEmpty(f.Modulo) ? f.Curso : $"{f.Curso} - {f.Modulo}"),
+            pieData = Model.SectorGraphSection.ValueSectorGraph.Select(f => f.QuantidadeAlunos),
+            urlLinha = Url.Action("GetLineGraphData", "Dashboard"),
+            urlPizza = Url.Action("GetPieGraphData", "Dashboard")
         })
     </script>
-    <script src="~/js/dashboard.js" asp-append-version="true"></script> @* desenha os gráficos e cuida dos filtros AJAX *@
+    <script src="~/js/dashboard.js" asp-append-version="true"></script>
 }

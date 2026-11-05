@@ -23,7 +23,7 @@ namespace PSGN.Infra.Data.Mappings
                    .HasForeignKey(a => a.IdCurso)
                    .OnDelete(DeleteBehavior.Cascade);
 
-            //REVISÃO: um usuário é aluno de um curso uma vez só (antes o UsuarioService criava um Aluno por módulo)
+            // Um usuário é aluno de um curso uma vez só
             builder.HasIndex(a => new { a.IdUsuario, a.IdCurso }).IsUnique();
         }
     }

@@ -1,34 +1,31 @@
 ﻿@model PSGN.Presentation.ViewModels.HomeViewModel
-@* REVISÃO: tela de Cursos no padrão do redesign. Mudanças: (1) a lista de módulos de cada curso agora abre e fecha (<details>), em vez de uma rolagem dentro da página;
-   (2) o resultado da sincronização vira toast (sucesso) ou aviso fixo (erro, que não deve sumir sozinho); (3) o botão Sincronizar mostra "Sincronizando…" e não aceita um segundo clique;
-   (4) o "Moodle #id", dado técnico, perde destaque *@
+@* Tela de Cursos (HomeController.Index): botão de sincronização com Moodle e NSG e a lista de cursos, cada um abrindo seus módulos *@
 @{
-    ViewData["Title"] = "Cursos"; // título da aba e da página
-    ViewData["Section"] = "Acadêmico"; // grupo da sidebar (lido pela partial _PageHeader)
-    ViewData["Subtitle"] = "Cursos e módulos sincronizados com o Moodle e o NSG"; // subtítulo (lido pela partial _PageHeader)
+    ViewData["Title"] = "Cursos";
+    ViewData["Section"] = "Acadêmico";
+    ViewData["Subtitle"] = "Cursos e módulos sincronizados com o Moodle e o NSG";
 }
 
-@* ===== Cabeçalho da página: título à esquerda e a ação principal à direita ===== *@
 <div class="page-header">
-    <partial name="_PageHeader" /> @* grupo + título + subtítulo *@
+    <partial name="_PageHeader" />
     <div class="page-actions">
-        @* POST com token antifalsificação (o tag helper asp-action coloca o token sozinho). data-loading liga o estado "carregando" do ui.js *@
+        @* data-loading: estado "Sincronizando…" do ui.js (bloqueia o segundo clique) *@
         <form asp-action="Sincronizar" method="post" data-loading>
             <button type="submit" class="btn btn-primary" data-loading-text="Sincronizando…">
-                <i class="bi bi-arrow-repeat" aria-hidden="true"></i> @* ícone de sincronizar (o spinner o substitui enquanto carrega) *@
+                <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
                 <span data-loading-label>Sincronizar com Moodle e NSG</span>
             </button>
         </form>
     </div>
 </div>
 
-@* Resultado de sucesso deixado pela action Sincronizar (TempData): o ui.js transforma o <template> em um toast que some sozinho *@
+@* Sucesso vira toast (ui.js) *@
 @if (Model.MensagemSincronizacao is not null)
 {
     <template data-toast="success">@Model.MensagemSincronizacao</template>
 }
 
-@* Erro de conexão deixado pela action Sincronizar: aviso fixo, porque o usuário precisa ler o motivo e tentar de novo *@
+@* Erro de conexão fica fixo, para o usuário ler o motivo *@
 @if (Model.ErroSincronizacao is not null)
 {
     <div class="mb-6"><partial name="_Alert" model='new AlertaViewModel { Tipo = "danger", Mensagem = Model.ErroSincronizacao }' /></div>
@@ -36,7 +33,6 @@
 
 @if (Model.Cursos.Count == 0)
 {
-    @* Nenhum curso no banco ainda: o botão de sincronizar já está no cabeçalho *@
     <div class="card">
         <partial name="_EmptyState" model='new EstadoVazioViewModel { Icone = "bi-book", Titulo = "Nenhum curso sincronizado", Descricao = "Use Sincronizar com Moodle e NSG, no topo da página, para trazer os cursos e os módulos." }' />
     </div>
@@ -45,27 +41,26 @@ else
 {
     <p class="mb-3 text-sm text-ink-soft"><span class="font-medium tabular-nums text-ink">@Model.Cursos.Count</span> @(Model.Cursos.Count == 1 ? "curso" : "cursos"). Abra um curso para ver os módulos.</p>
 
-    @* Um bloco por curso; <details> abre e fecha sem JavaScript e já é acessível pelo teclado *@
+    @* <details>: abre e fecha sem JavaScript e funciona pelo teclado *@
     <div class="space-y-3">
-        @foreach (var curso in Model.Cursos) // percorre os cursos do ViewModel
+        @foreach (var curso in Model.Cursos)
         {
-            <details class="card group open:border-accent-icon"> @* REVISÃO: curso aberto ganha contorno sky *@
-                <summary class="flex cursor-pointer list-none items-center gap-3 rounded-card px-5 py-4 transition-colors hover:bg-surface-hover group-open:rounded-b-none group-open:bg-accent-soft [&::-webkit-details-marker]:hidden"> @* a linha toda é clicável; some o triângulo padrão do navegador. REVISÃO: hover e cabeçalho aberto em Sky Surge claro (antes um cinza solto, fora dos tokens) *@
-                    <i class="bi bi-chevron-right text-accent-icon transition-transform group-open:rotate-90" aria-hidden="true"></i> @* seta que gira quando aberto (REVISÃO: em sky) *@
+            <details class="card group open:border-accent-icon">
+                <summary class="flex cursor-pointer list-none items-center gap-3 rounded-card px-5 py-4 transition-colors hover:bg-surface-hover group-open:rounded-b-none group-open:bg-accent-soft [&::-webkit-details-marker]:hidden">
+                    <i class="bi bi-chevron-right text-accent-icon transition-transform group-open:rotate-90" aria-hidden="true"></i>
                     <div class="min-w-0 flex-1">
-                        <h2 class="break-words text-base font-semibold text-ink">@curso.Nome</h2> @* nome do curso *@
-                        <p class="mt-0.5 text-xs text-ink-soft"><i class="bi bi-person mr-1" aria-hidden="true"></i>@curso.Coordenador</p> @* coordenador *@
+                        <h2 class="break-words text-base font-semibold text-ink">@curso.Nome</h2>
+                        <p class="mt-0.5 text-xs text-ink-soft"><i class="bi bi-person mr-1" aria-hidden="true"></i>@curso.Coordenador</p>
                     </div>
-                    <span class="badge shrink-0 tabular-nums">@curso.Modulos.Count @(curso.Modulos.Count == 1 ? "módulo" : "módulos")</span> @* deixa fácil ver curso que ficou sem módulo *@
+                    <span class="badge shrink-0 tabular-nums">@curso.Modulos.Count @(curso.Modulos.Count == 1 ? "módulo" : "módulos")</span>
                 </summary>
 
-                @* Lista de módulos do curso *@
                 <ul class="divide-y divide-line border-t border-line">
-                    @foreach (var modulo in curso.Modulos) // percorre os módulos do curso
+                    @foreach (var modulo in curso.Modulos)
                     {
                         <li class="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
-                            <span class="min-w-0 break-words text-ink">@modulo.Nome</span> @* nome do módulo *@
-                            <span class="shrink-0 text-xs tabular-nums text-ink-muted" title="Identificador do módulo no Moodle">Moodle #@modulo.IdMoodle</span> @* dado técnico: pequeno e discreto *@
+                            <span class="min-w-0 break-words text-ink">@modulo.Nome</span>
+                            <span class="shrink-0 text-xs tabular-nums text-ink-muted" title="Identificador do módulo no Moodle">Moodle #@modulo.IdMoodle</span>
                         </li>
                     }
                 </ul>

@@ -15,8 +15,7 @@ namespace PSGN.Infra.Data.Mappings
         {
             builder.HasKey(u => u.IdUsuario);
 
-            //REVISÃO: a matrícula identifica o usuário em toda a sincronização, então o banco passa a proibir duplicata.
-            //O SQL Server não deixa criar índice em nvarchar(max), por isso o tamanho máximo de 50.
+            // Matrícula única (identifica o usuário na sincronização); tamanho 50 porque nvarchar(max) não aceita índice
             builder.Property(u => u.Matricula).HasMaxLength(50);
             builder.HasIndex(u => u.Matricula).IsUnique();
         }

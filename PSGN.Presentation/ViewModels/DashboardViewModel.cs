@@ -1,13 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc.Rendering;
 
-// REVISÃO: o namespace veio do PSG (PSG.Presentation.Models.DashBoard). Troquei para o mesmo da HomeViewModel, que já é
-// importado em todas as views pelo _ViewImports.cshtml
 namespace PSGN.Presentation.ViewModels
 {
-    // REVISÃO: removidos deste ViewModel, a pedido do usuário, tudo o que dependia da antiga situação das inscrições:
-    // AlunosCancelados (AlunoCanceladoItem), SituacaoInscricoes (SituacaoInscricoesItem), CursoMaiorCancelamento e CursoMaiorReprovacao (CursoImportanciaItem).
-    // Os "alunos cancelados" voltam a ser tratados no futuro, quando o domain guardar o cancelamento e a data dele.
-    public class DashboardViewModel // REVISÃO: era "DashBoardViewModel" (B maiúsculo), diferente do nome do arquivo e do controller; agora todos usam "Dashboard"
+    // ViewModel do Dashboard (DashboardController -> Views/Dashboard/Index)
+    public class DashboardViewModel
     {
         public LineGraphSection LineGraphSection { get; set; } = new LineGraphSection();
         public SectorGraphSection SectorGraphSection { get; set; } = new SectorGraphSection();

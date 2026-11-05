@@ -11,7 +11,7 @@ builder.Services
     .AddOptions<ConfigMoodleWebApi>()
     .Bind(builder.Configuration.GetSection("ConfigMoodleWebApi"))
     .ValidateDataAnnotations()
-    .ValidateOnStart(); // a aplicação não sobe se faltar BaseUrl ou Token
+    .ValidateOnStart();
 
 
 var app = builder.Build();
@@ -34,6 +34,6 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Dashboard}/{action=Index}/{id?}"); // REVISÃO: a página inicial agora é o Dashboard (como no PSG); a tela de Cursos continua em /Home
+    pattern: "{controller=Dashboard}/{action=Index}/{id?}");
 
 app.Run();
