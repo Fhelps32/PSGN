@@ -60,6 +60,25 @@ namespace PSGN.Domain
             return tentativa;
         }
 
+        // Importa uma prova do histórico do Moodle (ImportacaoHistoricoService): abre a tentativa na data em que a anterior foi fechada
+        // (a 1ª, no início da prova), liga a prova e fecha pelo resultado (nota >= 7 aprova, abaixo disso reprova). Prova sem nota fica aberta.
+        // Devolve null se a prova já foi importada, se o módulo já está aprovado ou se não pôde ser ligada à tentativa aberta
+        public Tentativa? ImportarProva(int idAttempt, DateTime? inicio, DateTime? fim, double? nota)
+        {
+            if (Aprovado || Tentativas.Any(t => t.IdAttempt == idAttempt)) return null;
+
+            var tentativa = TentativaAberta
+                ?? AbrirTentativa(TentativasEmOrdem.LastOrDefault()?.DataFimTentativa ?? inicio ?? DataInscricao);
+
+            if (!tentativa.RegistrarProva(idAttempt, inicio, fim, nota)) return null;
+
+            var fechamento = fim ?? inicio ?? DateTime.Now;
+            if (tentativa.PodeAprovar) tentativa.Aprovar(fechamento);
+            else if (tentativa.PodeReprovar) tentativa.Reprovar(fechamento);
+
+            return tentativa;
+        }
+
         public void Concluir(DateTime agora) => DataConclusao = agora;
     }
 }

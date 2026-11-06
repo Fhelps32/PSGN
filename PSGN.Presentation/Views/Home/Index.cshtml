@@ -9,6 +9,15 @@
 <div class="page-header">
     <partial name="_PageHeader" />
     <div class="page-actions">
+        @* Importação inversa: cria alunos, inscrições e tentativas a partir das provas do Moodle. Pede confirmação (ui.js) porque grava muito *@
+        <form asp-action="ImportarHistorico" method="post" data-loading data-confirm-titulo="Importar o histórico do Moodle?" data-confirm-acao="Importar"
+              data-confirm="Para cada módulo, as provas do Moodle viram tentativas: quem ainda não existe no PSGN é criado, com a inscrição no módulo. Provas com nota 7 ou mais fecham como aprovadas e as demais como reprovadas. Cursos e módulos precisam estar sincronizados. Pode levar alguns minutos.">
+            <button type="submit" class="btn btn-secondary" data-loading-text="Importando…">
+                <i class="bi bi-clock-history" aria-hidden="true"></i>
+                <span data-loading-label>Importar histórico</span>
+            </button>
+        </form>
+
         @* data-loading: estado "Sincronizando…" do ui.js (bloqueia o segundo clique) *@
         <form asp-action="Sincronizar" method="post" data-loading>
             <button type="submit" class="btn btn-primary" data-loading-text="Sincronizando…">

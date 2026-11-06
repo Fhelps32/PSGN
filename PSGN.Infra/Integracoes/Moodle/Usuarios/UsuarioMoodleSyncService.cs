@@ -27,5 +27,19 @@ namespace PSGN.Infra.Integracoes.Moodle.Usuarios
             // Só alunos; usuário sem a lista de roles é ignorado
             return listaUsuariosCru.Where(u => u.Roles?.Any(r => r.Nome == "student") == true);
         }
+
+        // Mesmo campo de nome da sincronização normal (firstname); lança InvalidOperationException se o token não puder usar a função
+        public async Task<string?> ObterNomePeloUsernameAsync(string username)
+        {
+            var usuarios = await MoodleWebApi.ChamarAsync<List<UsuarioSaidaJsonMoodleDto>>(
+                _httpClient, _configMoodleWebApi, "core_user_get_users_by_field",
+                new Dictionary<string, string>
+                {
+                    ["field"] = "username",
+                    ["values[0]"] = username
+                });
+
+            return usuarios.Count == 0 || string.IsNullOrWhiteSpace(usuarios[0].Nome) ? null : usuarios[0].Nome;
+        }
     }
 }

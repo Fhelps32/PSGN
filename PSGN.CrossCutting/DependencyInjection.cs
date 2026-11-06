@@ -5,6 +5,7 @@ using PSGN.Application.Data;
 using PSGN.Application.Interfaces.ExternoServices;
 using PSGN.Application.Servicos.Alunos;
 using PSGN.Application.Servicos.Cursos;
+using PSGN.Application.Servicos.Historico;
 using PSGN.Application.Servicos.Modulos;
 using PSGN.Application.Servicos.Sincronizacao;
 using PSGN.Application.Servicos.Tentativas;
@@ -33,6 +34,7 @@ namespace PSGN.CrossCutting
             services.AddScoped<UsuarioService>();
             services.AddScoped<TentativaService>();
             services.AddScoped<SincronizacaoService>();
+            services.AddScoped<ImportacaoHistoricoService>();
             services.AddScoped<AlunoService>();
             return services;
         }
